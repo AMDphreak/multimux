@@ -363,7 +363,7 @@ function buildCustomHomepage() {
       </div>
 
       <h2 class="text-xl font-bold font-mono text-zinc-800 tracking-wider uppercase mb-3">multimux</h2>
-      <p class="text-sm font-mono text-zinc-500 uppercase tracking-widest mb-6">Master Audio Down-Mixdown Suite</p>
+      <p class="text-sm font-mono text-zinc-500 uppercase tracking-widest mb-6">Master Audio Mixdown Suite</p>
       
       <p class="text-sm text-zinc-600 leading-relaxed max-w-lg mb-8">
         Visually mix down multiple discrete audio container tracks into a single master track, while preserving the video stream bit-for-bit with instant, lossless, container-level passthrough. Built natively in Electron + SolidJS, powered by a high-performance concurrent D-lang core.

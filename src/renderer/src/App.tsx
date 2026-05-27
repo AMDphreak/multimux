@@ -284,7 +284,7 @@ export default function App() {
             <span class="text-[10px] text-zinc-400 font-bold tracking-widest uppercase">Console Power</span>
           </div>
           <h1 class="text-xs font-bold text-zinc-200 tracking-[0.25em] uppercase font-mono">
-            multimux <span class="text-zinc-500 font-normal tracking-normal text-[10px] ml-1">// Master Audio Down-Mixdown Suite</span>
+            multimux <span class="text-zinc-500 font-normal tracking-normal text-[10px] ml-1">// Master Audio Mixdown Suite</span>
           </h1>
         </div>
         <div class="text-[10px] text-zinc-500 font-mono tracking-wider">
