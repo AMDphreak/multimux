@@ -2,6 +2,9 @@ appId: com.electron.multimux
 productName: multimux
 directories:
   buildResources: build
+extraResources:
+  - from: core/multimux-core.exe
+    to: bin/multimux-core.exe
 files:
   - '!**/.vscode/*'
   - '!src/*'

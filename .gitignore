@@ -27,6 +27,10 @@ out/
 
 # Allow source files
 !src/**
+!core/**
+core/multimux-core.exe
+core/multimux-core
+core/multimux-core.pdb
 
 # Allow resources & build configurations
 !resources/**

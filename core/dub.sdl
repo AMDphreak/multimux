@@ -1,0 +1,6 @@
+name "multimux-core"
+description "Native D-lang process controller and supervisor for FFmpeg and FFprobe"
+authors "amdphreak"
+copyright "Copyright © 2026, amdphreak"
+license "MIT"
+targetType "executable"
