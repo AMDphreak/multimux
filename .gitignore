@@ -10,6 +10,8 @@ dist/
 out/
 .eslintcache
 .vscode/
+site/node_modules/
+site/dist/
 
 # Allow configuration files
 !.gitignore
@@ -39,7 +41,10 @@ core/multimux-core.pdb
 # Allow workflows
 !.github/**
 
-# Allow documentation
+# Allow documentation & website
 !README.adoc
 !CHANGELOG.adoc
 !changelog-details/**
+!docs/**
+!site/package.json
+!site/build.js

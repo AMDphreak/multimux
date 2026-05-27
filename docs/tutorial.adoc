@@ -1,0 +1,97 @@
+= Tutorial: Getting Started with the D-lang Native Core
+:toc: left
+:icons: font
+:source-highlighter: highlightjs
+
+This tutorial guides you through the process of compiling, running, and validating the D-lang native supervisor core (`multimux-core`) on your system.
+
+== Prerequisites
+
+Before you begin, ensure you have the following installed on your machine:
+
+* * [ ] *DMD Compiler*: The reference compiler for the D programming language.
+* * [ ] *DUB Package Manager*: The standard package and build manager for D (usually bundled with DMD).
+* * [ ] *FFmpeg and FFprobe*: Native command-line executables registered in your system's environment `PATH`.
+
+== Step 1: Compiling the Native Core
+
+To compile the `multimux-core` binary:
+
+1. Open your terminal or PowerShell console.
+2. Navigate to the core directory inside the project workspace:
++
+[source,bash]
+----
+cd Z:\code\github.com\amdphreak\multimux\core
+----
+3. Execute the release build command using DUB:
++
+[source,bash]
+----
+dub build --compiler=dmd --build=release
+----
+4. DUB will automatically compile the source files in `source/app.d` and output a compiled binary:
+* On Windows: `core/multimux-core.exe`
+* On macOS/Linux: `core/multimux-core`
+
+== Step 2: Testing Metadata Probing
+
+To verify that the core communicates successfully with `ffprobe`:
+
+1. Run the core binary with the `probe` command, passing the absolute path to any multi-track video file:
++
+[source,bash]
+----
+.\multimux-core.exe probe "C:\Users\rjamd\Videos\my-game-recording.mkv"
+----
+2. The D-lang core will execute `ffprobe` in a piped subprocess, parse the output, and print a clean, structured JSON payload directly to the standard output:
++
+[source,json]
+----
+{
+  "streams": [
+    { "index": 0, "codec_name": "h264", "codec_type": "video", "width": 1920, "height": 1080 },
+    { "index": 1, "codec_name": "aac", "codec_type": "audio", "channels": 2, "tags": { "title": "Game Audio" } },
+    { "index": 2, "codec_name": "aac", "codec_type": "audio", "channels": 2, "tags": { "title": "Microphone" } }
+  ]
+}
+----
+
+== Step 3: Simulating a Piped Mixdown
+
+To test the audio muxing supervisor directly from the command line:
+
+1. Create a raw JSON options payload that specifies the source, destination, target codecs, and track multipliers:
++
+[source,json]
+----
+{
+  "filePath": "C:\\Users\\rjamd\\Videos\\input.mkv",
+  "outputPath": "C:\\Users\\rjamd\\Videos\\output.mkv",
+  "audioCodec": "aac",
+  "audioBitrate": "192k",
+  "duration": 60.0,
+  "selectedStreams": [
+    { "relativeIndex": 0, "volume": 1.0 },
+    { "relativeIndex": 1, "volume": 1.5 }
+  ]
+}
+----
+2. Feed this JSON string directly as an argument to the `mux` command:
++
+[source,bash]
+----
+.\multimux-core.exe mux "{\"filePath\":\"input.mkv\", ...}"
+----
+3. Watch the real-time, typed JSON events printed to `stdout`:
++
+[source,json]
+----
+{"type": "log", "message": "Spawning FFmpeg..."}
+{"type": "progress", "percent": 12.40}
+{"type": "progress", "percent": 24.80}
+{"type": "progress", "percent": 100.0, "message": "Success"}
+{"type": "done"}
+----
++
+These are the clean, structured messages that the Electron renderer consumes to render the CRT console without lagging the interface.

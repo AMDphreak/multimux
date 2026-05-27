@@ -1,0 +1,82 @@
+= Explanation: Supervisor Architecture and Message Passing
+:toc: left
+:icons: font
+:source-highlighter: highlightjs
+
+This document provides a deep dive into the architectural design of **multimux**, detailing how the D-lang supervisor core and Electron interface collaborate via a robust, message-passing pipeline.
+
+== The Architectural Diagram
+
+The system is split into four distinct layers, separated by process and thread boundaries:
+
+[source,text]
+----
++-------------------------------------------------------------+
+|                     Electron Renderer (GUI)                 |
+|  [SolidJS] - Responsive concrete dashboard UI               |
++------------------------------+------------------------------+
+                               |
+                   IPC Bridges / Context Bridge
+                               |
++------------------------------v------------------------------+
+|                     Electron Main Process                   |
+|  [Node.js] - Secure coordinator, handles native dialogs    |
++------------------------------+------------------------------+
+                               |
+                     Piped OS Subprocess (I/O)
+                               |
++------------------------------v------------------------------+
+|                     multimux-core (Supervisor)              |
+|  [D-lang] - Native coordinator, sets process priority       |
+|    |                                                        |
+|    +--- [std.concurrency] - Isolated Progress Actor Thread  |
++----+--------------------------------------------------------+
+     |
+     +--- Piped Subprocess (Win32 Handles)
+     |
++----v--------------------------------------------------------+
+|                          FFmpeg                             |
+|  [C/Assembly] - High-performance signal processing engine   |
++-------------------------------------------------------------+
+----
+
+== Key Architectural Decisions
+
+=== 1. Core Process Isolation (Crash Resilience)
+
+In many Electron media tools, developers compile native C/C++ bindings directly into the Node process. This is a severe anti-pattern:
+* If the underlying C library (`libavcodec`) encounters a corrupted frame or hardware driver error, it throws a C-level segmentation fault.
+* Because the binding runs inside Node's address space, **the entire Electron desktop app crashes immediately** to the desktop with zero stack trace.
+
+**multimux** solves this by isolating the C-execution inside a separate native subprocess boundary (`multimux-core.exe`):
+* If FFmpeg or the supervisor encounters a fatal error, it exits cleanly with a status code.
+* The Electron app captures this status code, prints a structured error banner, and lets the user adjust settings without losing their active session.
+
+=== 2. Actor-Based Concurrency in D-lang
+
+D-lang provides native actor-based concurrency (`std.concurrency`) out-of-the-box:
+* Threads communicate purely by sending value-typed messages rather than sharing state.
+* The main D thread handles standard input/output pipes and processes standard logging.
+* The worker thread `trackProgressThread` runs isolated, receiving raw timecode strings and processing them into floating-point progress percentages.
+* This completely eliminates data-race vulnerabilities and maximizes execution speeds.
+
+=== 3. Typed JSON-Line Protocol
+
+Instead of parsing verbose, human-readable FFmpeg console logs in JavaScript (which are volatile and prone to upstream changes), we use a structured, typed JSON-Line protocol over standard I/O pipes:
+
+1. Electron writes a single, clean JSON options string to `multimux-core`'s standard input:
++
+[source,json]
+----
+{"filePath":"input.mp4", "outputPath":"output.mp4", "audioCodec":"aac", ...}
+----
+2. The D-lang supervisor parses it, compiles the filter graph, spawns FFmpeg, and writes structured JSON lines to standard output:
++
+[source,json]
+----
+{"type": "log", "message": "Spawning FFmpeg..."}
+{"type": "progress", "percent": 14.50}
+{"type": "progress", "percent": 100.0, "message": "Success"}
+{"type": "done"}
+----
+3. Electron receives these JSON lines, instantly maps them to SolidJS reactive signals, and renders updates with sub-millisecond lag.

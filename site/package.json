@@ -1,0 +1,11 @@
+{
+  "name": "multimux-website",
+  "version": "1.0.0",
+  "description": "Static website and documentation portal for multimux",
+  "scripts": {
+    "build": "node build.js"
+  },
+  "dependencies": {
+    "asciidoctor": "^3.0.4"
+  }
+}

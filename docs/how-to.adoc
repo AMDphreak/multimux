@@ -1,0 +1,47 @@
+= How-To: Manage Thread Priorities and CPU Scheduling
+:toc: left
+:icons: font
+:source-highlighter: highlightjs
+
+This guide explains how `multimux-core` manages OS-level process scheduling and background thread execution to ensure your system remains 100% responsive during intensive audio mixdowns.
+
+== Adjusting Process Priority
+
+By default, FFmpeg will attempt to utilize as much CPU power as possible, which can saturate the system bus and make other user interface programs (like games, web browsers, or Electron itself) feel sluggish or stutter.
+
+To resolve this, `multimux-core` automatically lowers the scheduling priority of the spawned FFmpeg subprocess to **Below Normal** (`BELOW_NORMAL_PRIORITY_CLASS`) on Windows.
+
+=== Under-the-Hood Win32 Implementation
+
+Inside the D-lang core `handleMux` routine, after calling `pipeProcess`, the supervisor grabs the OS handle of the child process and updates its scheduling class:
+
+[source,d]
+----
+version(Windows) {
+    import core.sys.windows.windows;
+    SetPriorityClass(pipes.pid.osHandle, BELOW_NORMAL_PRIORITY_CLASS);
+}
+----
+
+This ensures that:
+* The OS scheduler prioritizes user interactions, games, and the Electron frontend.
+* FFmpeg runs in the background, utilizing only idle cycles without choking active windows.
+
+== Throttling and Aggregating Logs
+
+Verbose console output from FFmpeg can flood standard communication channels, creating a bottleneck on the single-threaded Node.js event loop. `multimux-core` handles this inside a dedicated tracking thread using D's actor model (`std.concurrency`):
+
+1. The main thread pipes raw standard error lines.
+2. It performs a fast, zero-allocation search for the `time=` timecode:
++
+[source,d]
+----
+auto idx = lineStr.indexOf("time=");
+if (idx != -1 && lineStr.length >= idx + 16) {
+    string timeStr = lineStr[idx + 5 .. idx + 16]; // Extract timecode slice
+    tid.send(timeStr); // Dispatch message to background actor thread
+}
+----
+3. The background actor thread `trackProgressThread` runs completely isolated, converts the timestamp, computes progress, and flushes output throttled to stdout.
++
+This message-passing pattern keeps heavy mathematical calculations and string allocations entirely off the Node.js GUI thread.

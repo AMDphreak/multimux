@@ -1,0 +1,91 @@
+= Reference: Core CLI Command and Schema Specification
+:toc: left
+:icons: font
+:source-highlighter: highlightjs
+
+This document provides a technical reference for the `multimux-core` CLI commands, JSON option schemas, and piped IPC communication events.
+
+== CLI Syntax
+
+The compiled native core binary supports two commands:
+
+[source,bash]
+----
+multimux-core probe <file_path>
+multimux-core mux [<options_json_string>]
+----
+
+=== 1. Probe Command
+* **Arguments**: `<file_path>` (Absolute path to the media file).
+* **Behavior**: Runs `ffprobe` as a piped process, filters metadata, and returns a JSON payload detailing the container format and available streams.
+
+=== 2. Mux Command
+* **Arguments**: `[<options_json_string>]` (Optional JSON string. If omitted, the binary reads from the standard input stream).
+* **Behavior**: Orchestrates the multi-track audio mixdown using `ffmpeg`, adjusts process priorities, and writes progress lines to stdout.
+
+---
+
+== JSON Schemas
+
+=== Stdin: Mux Configuration Schema
+
+When invoking the `mux` command, Electron passes this options payload to the standard input of the D-lang supervisor:
+
+[source,json]
+----
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "properties": {
+    "filePath": { "type": "string" },
+    "outputPath": { "type": "string" },
+    "audioCodec": { "type": "string", "enum": ["aac", "libopus", "copy"] },
+    "audioBitrate": { "type": "string", "pattern": "^[0-9]+k$" },
+    "duration": { "type": "number", "minimum": 0.0 },
+    "selectedStreams": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "relativeIndex": { "type": "integer", "minimum": 0 },
+          "volume": { "type": "number", "minimum": 0.0, "maximum": 2.0 }
+        },
+        "required": ["relativeIndex", "volume"]
+      }
+    }
+  },
+  "required": ["filePath", "outputPath", "audioCodec", "audioBitrate", "duration", "selectedStreams"]
+}
+----
+
+=== Stdout: IPC Event Streams
+
+During execution, `multimux-core` emits single-line JSON structures to `stdout` separated by standard newlines (`\n` or `\r\n`).
+
+==== 1. Log Event
+Sent whenever FFmpeg outputs debugging logs or progress metrics to stderr:
+[source,json]
+----
+{ "type": "log", "message": "Spawning FFmpeg supervisor..." }
+----
+
+==== 2. Progress Event
+Sent dynamically as timestamps are extracted from standard error:
+[source,json]
+----
+{ "type": "progress", "percent": 45.20 }
+----
+
+==== 3. Error Event
+Sent if the command fails or parses invalid option schemas:
+[source,json]
+----
+{ "type": "error", "message": "ffmpeg failed with exit code 1." }
+----
+
+==== 4. Completion Event
+Sent when the subprocess completes with exit code 0:
+[source,json]
+----
+{ "type": "done" }
+----
