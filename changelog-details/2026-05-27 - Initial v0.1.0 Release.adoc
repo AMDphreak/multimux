@@ -1,0 +1,34 @@
+= 2026-05-27 - Initial v0.1.0 Release
+:toc:
+
+This detailed changelog details the initial launch features of multimux (`v0.1.0`).
+
+== Major Achievements
+
+=== 1. Skeuomorphic & Ergonomic Mixing Console UI
+* Built an **Inlet Port** drag-and-drop landing plate that supports file ingestion with dynamic hovering feedback.
+* Developed a **Tactile Concrete Fader Board** that resembles high-end analog physical studio mixing boards:
+  - Custom linear-gradient metallic volume knobs.
+  - Dark carved tracks representing fader slots with high-fidelity `inset box-shadows`.
+  - Level labels in decibels (`dB`), ranging from `-oo dB` to `+6.0 dB` with a linear volume coefficient mapping (`0.0` to `2.0`).
+  - Tactile physical toggle switches to flip channels between muted and active states.
+  - A premium snap zone around `1.0` (0dB, default volume) for easy alignment.
+  - Double-click handlers on fader knobs to instantly reset gains to `0dB` (normal).
+* Added a **CRT Monitor overlay** (retro deep-green phosphorescent screen) that renders real-time FFmpeg process stats (percentage, speed, elapsed time) and raw console stdout/stderr lines with auto-scroll feeds.
+
+=== 2. Multi-Process IPC Muxing Bridge
+* Configured `probe-file` using `ffprobe` to inspect input video containers and return detailed stream JSON payloads.
+* Created a relative stream positioning algorithm mapping probed physical audio channels to their relative index in FFmpeg (`0:a:N`), ensuring accurate mapping.
+* Developed `mux-audio` to spawn under-the-hood `ffmpeg` processes:
+  - Automatically compiles standard dynamic `amix` audio signal filter graphs (summing waves and applying slider volume decibel multiplications).
+  - Emits real-time progress calculations by parsing stderr line timings (`time=HH:MM:SS.xx`) and comparing them against target file durations.
+  - Preserves video bitstreams bit-for-bit with perfect `-c:v copy` passthrough.
+* Created `select-output-file` IPC route bridging to Electron's native `dialog.showSaveDialog` for premium save controls.
+* Added `open-explorer` IPC route using Electron's native `shell.showItemInFolder` to let users highlight output files directly in Windows Explorer.
+
+=== 3. Standard Git Allow-listing and Config Formats
+* Configured `.gitignore` using a strict **allow-list structure** (excluding `*` by default and whitelisting only designated source and configuration paths).
+* Preserved standard configuration files and typescript profiles.
+
+=== 4. Automated Build & Release CI/CD
+* Set up a `.github/workflows/release.yml` GitHub Actions pipeline that triggers on tags, compiles Electron binaries, and registers them directly into GitHub Releases.

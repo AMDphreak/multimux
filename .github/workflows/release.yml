@@ -1,0 +1,60 @@
+name: Release CI
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Setup PNPM
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - name: Install Dependencies
+        run: pnpm install
+
+      - name: Compile and Package Application
+        run: pnpm exec electron-builder --win
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Get Tag Name
+        id: get_tag
+        shell: bash
+        run: echo "tag=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.get_tag.outputs.tag }}
+          name: Release ${{ steps.get_tag.outputs.tag }}
+          body: |
+            ## multimux: Master Audio Down-Mixdown Suite v0.1.0
+
+            This is the initial release of **multimux**!
+
+            ### What's New:
+            - **Tactile Concrete Fader Console**: A beautiful physical mixing board UI to visual balance volume sliders (decibel gains from `-oo` to `+6.0 dB`).
+            - **Lossless Video Passthrough**: Kept video bitstreams bit-for-bit identical, compiling files in seconds instead of hours.
+            - **Live CRT Monitor Feedback**: Renders FFmpeg logs and progress in real-time in a vintage green terminal feed.
+            - **Save Dialog Integration & Explorer Actions**: Open files directly or open directories in Windows Explorer.
+          files: |
+            dist/multimux-*.exe
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

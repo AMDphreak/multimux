@@ -1,0 +1,10 @@
+= Changelog
+:toc: left
+
+This document records the developmental history of multimux.
+
+== Timeline
+
+* link:changelog-details/2026-05-27%20-%20Initial%20v0.1.0%20Release.adoc[2026-05-27 - Initial v0.1.0 Release]
++
+Initial release of multimux. Implements the tactile concrete-panel physical audio mixing desk console UI, IPC handlers for ffprobe/ffmpeg analysis and signal processing, allow-listed git settings, and a fully configured GitHub Actions CI/CD release workflow.

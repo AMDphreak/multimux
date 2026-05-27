@@ -1,0 +1,115 @@
+= multimux: Master Audio Down-Mixdown Suite
+:toc: left
+:toclevels: 3
+:icons: font
+:source-highlighter: highlightjs
+
+image::resources/icon.png[multimux Logo, 128, 128, align=center]
+
+A lightweight, elegant, and cross-platform desktop application built in Electron, SolidJS, and TypeScript. multimux allows screen-recorders and video-editors to visually mix down multiple discrete audio tracks from any recording source into a single master track, while preserving the video stream bit-for-bit with instant container-level passthrough (`-c:v copy`).
+
+== Tutorials
+
+=== Scaffolding and Launching the App
+
+To get the application up and running locally, follow these simple steps:
+
+1. Clone this repository to your computer.
+2. Open your terminal in the project directory.
+3. Install the node packages:
++
+[source,bash]
+----
+pnpm install
+----
+4. Start the application in developer mode:
++
+[source,bash]
+----
+pnpm run dev
+----
+5. Use `F12` to toggle the developer console if you want to inspect IPC bridge outputs.
+
+=== Performing Your First Audio Mixdown
+
+Here is how to perform your first mixdown in less than 30 seconds:
+
+1. Launch multimux.
+2. Locate your screen recording in your file manager.
+3. Drag and drop the file directly onto the recessed **Inlet Port** plate.
+4. The console will automatically analyze the streams and display your active channels as physical vertical channel strips.
+5. Toggle the channel switches to include or exclude specific tracks.
+6. Drag the mechanical fader knobs up or down to balance volumes.
+7. Click the heavy mechanical **Mix & Mux Master** push-button at the bottom.
+8. Watch the compilation progress and log feed inside the retro green-screen overlay. Once completed, click **Open File Location** to find your mixed recording.
+
+---
+
+== How-To Guides
+
+=== Adjusting Volume Levels (Decibels)
+
+To balance your volume levels:
+
+* Drag the fader knob upwards to boost a track (up to `+6.0 dB`).
+* Drag the fader knob downwards to attenuate a track (down to `-oo dB` / Muted).
+* To reset a fader knob exactly back to its default volume (`0.0 dB`), double-click the fader knob cap. It will automatically snap to the middle tick.
+
+=== Changing Output Audio Codecs
+
+multimux supports both AAC and Opus output formats:
+
+* Under the *Output Mux Specs* card, select the codec push-button (**AAC** or **OPUS**).
+* To select the desired fidelity, adjust the bitrate dropdown menu (ranges from **128k** for fast drafts to **320k** for studio quality).
+
+=== Stripping Audio Tracks Entirely
+
+If you want to strip all audio channels and export a silent video:
+
+1. Disable all channels using their toggles so that every channel says `MUTED`.
+2. Click the **Mix & Mux Master** button. The application will automatically call FFmpeg with the `-an` flag, stripping all audio tracks in seconds.
+
+---
+
+== Explanation
+
+=== Under-the-Hood Muxing Mechanics
+
+Screen-recording apps (like OBS or ShadowPlay) capture microphone feeds, gaming sounds, and Discord audio on separate, discrete tracks. While this is great for multi-track editors, standard video players only read Track 1, meaning other tracks go silent when uploaded directly.
+
+multimux bridges this gap. Unlike standard transcoder suites that re-encode the entire video (taking hours and losing visual quality), multimux does two simultaneous things:
+
+1. **Video Stream Copy (`-c:v copy`)**: The video packets are moved bit-for-bit directly from the input container to the output container without any decoding. This process is instantaneous and lossless.
+2. **Audio Mixdown (`amix`)**: The chosen audio tracks are decoded into raw floating-point PCM waves. The application applies the customized volume multipliers (sliders), sums the waves together using FFmpeg's `amix` filter, and encodes the resulting master mix into a single stereo track.
+
+==== FFmpeg Filter Graph Example
+
+If CH1 (Desktop) is kept at `1.0` (0dB) and CH3 (Mic) is boosted to `1.5` (+3.5dB), multimux dynamically generates and spawns this exact filter graph:
+
+[source,text]
+----
+[0:a:0]volume=1.0[a0]; [0:a:2]volume=1.5[a2]; [a0][a2]amix=inputs=2:duration=longest:dropout_transition=0[a]
+----
+
+---
+
+== Reference
+
+=== System Requirements
+
+* **Operating System**: Windows 10/11, macOS, or Linux.
+* **Backend Utilities**: `ffmpeg` and `ffprobe` must be installed on your system and registered in your system PATH.
+
+=== Build Scripts
+
+The following commands are available in your workspace `package.json`:
+
+* `pnpm run dev`: Launch the desktop app in live hot-reload development.
+* `pnpm run build`: Compile TypeScript and build the static assets.
+* `pnpm run build:win`: Package the desktop application into a standalone Windows installer (`.exe`) under the `dist/` directory.
+
+---
+
+== Changelog
+
+See detailed timeline logs in link:CHANGELOG.adoc[CHANGELOG.adoc].

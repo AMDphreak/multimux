@@ -1,0 +1,41 @@
+# Exclude everything by default
+*
+
+# Allow directories
+!*/
+
+# Explicitly ignore dependency and build folders (stops recursive allow-list matching)
+node_modules/
+dist/
+out/
+.eslintcache
+.vscode/
+
+# Allow configuration files
+!.gitignore
+!.npmrc
+!package.json
+!tsconfig.json
+!tsconfig.node.json
+!tsconfig.web.json
+!electron.vite.config.ts
+!electron-builder.yml
+!eslint.config.mjs
+!.editorconfig
+!.prettierignore
+!.prettierrc.yaml
+
+# Allow source files
+!src/**
+
+# Allow resources & build configurations
+!resources/**
+!build/**
+
+# Allow workflows
+!.github/**
+
+# Allow documentation
+!README.adoc
+!CHANGELOG.adoc
+!changelog-details/**
