@@ -55,6 +55,28 @@ app.whenReady().then(() => {
     return await probeFile(filePath)
   })
 
+  ipcMain.handle('select-input-file', async () => {
+    const result = await dialog.showOpenDialog({
+      title: 'Select Input Video File',
+      properties: ['openFile'],
+      filters: [
+        {
+          name: 'Supported Video Containers (*.mkv, *.mp4, *.ts, *.mov)',
+          extensions: ['mkv', 'mp4', 'ts', 'mov']
+        },
+        { name: 'Matroska Video (*.mkv)', extensions: ['mkv'] },
+        { name: 'MPEG-4 Video (*.mp4)', extensions: ['mp4'] },
+        { name: 'MPEG Transport Stream (*.ts)', extensions: ['ts'] },
+        { name: 'QuickTime Movie (*.mov)', extensions: ['mov'] },
+        { name: 'All Files (*.*)', extensions: ['*'] }
+      ]
+    })
+    if (result.canceled || result.filePaths.length === 0) {
+      return undefined
+    }
+    return result.filePaths[0]
+  })
+
   ipcMain.handle('select-output-file', async (_event, defaultPath: string) => {
     const result = await dialog.showSaveDialog({
       title: 'Select Output Path',

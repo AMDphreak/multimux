@@ -4,6 +4,7 @@ import { electronAPI } from '@electron-toolkit/preload'
 // Custom APIs for renderer
 const api = {
   probeFile: (filePath: string) => ipcRenderer.invoke('probe-file', filePath),
+  selectInputFile: () => ipcRenderer.invoke('select-input-file'),
   selectOutputFile: (defaultPath: string) => ipcRenderer.invoke('select-output-file', defaultPath),
   openExplorer: (filePath: string) => ipcRenderer.invoke('open-explorer', filePath),
   muxAudio: (options: any) => ipcRenderer.invoke('mux-audio', options),

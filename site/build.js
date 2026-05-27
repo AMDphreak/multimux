@@ -23,24 +23,30 @@ function wrapHtml(title, content, relativePathToRoot = '.', activePage = '') {
     { label: 'Home', href: `${relativePathToRoot}/index.html`, id: 'home' },
     { label: 'Tutorial', href: `${relativePathToRoot}/docs/tutorial.html`, id: 'tutorial' },
     { label: 'How-To Guides', href: `${relativePathToRoot}/docs/how-to.html`, id: 'how-to' },
-    { label: 'Explanation', href: `${relativePathToRoot}/docs/explanation.html`, id: 'explanation' },
+    {
+      label: 'Explanation',
+      href: `${relativePathToRoot}/docs/explanation.html`,
+      id: 'explanation'
+    },
     { label: 'Reference', href: `${relativePathToRoot}/docs/reference.html`, id: 'reference' },
     { label: 'Changelog', href: `${relativePathToRoot}/changelog.html`, id: 'changelog' }
   ]
 
-  const navLinks = pages.map(p => {
-    const isActive = activePage === p.id
-    return `
+  const navLinks = pages
+    .map((p) => {
+      const isActive = activePage === p.id
+      return `
       <a href="${p.href}" class="flex items-center gap-3 px-4 py-2.5 rounded font-mono text-xs font-bold transition-all ${
-        isActive 
-          ? 'bg-zinc-800 text-emerald-400 border border-zinc-700 shadow-inner' 
+        isActive
+          ? 'bg-zinc-800 text-emerald-400 border border-zinc-700 shadow-inner'
           : 'text-zinc-400 hover:bg-zinc-900/50 hover:text-zinc-200'
       }">
         <div class="w-1.5 h-1.5 rounded-full ${isActive ? 'bg-emerald-400 shadow-[0_0_8px_#34d399]' : 'bg-zinc-600'}"></div>
         <span>${p.label}</span>
       </a>
     `
-  }).join('')
+    })
+    .join('')
 
   return `
 <!DOCTYPE html>
@@ -428,13 +434,43 @@ console.log('--- Compiling multimux Documentation Site ---')
 buildCustomHomepage()
 
 // Compile main documentation articles
-compileAdoc(path.join(docsDir, 'tutorial.adoc'), path.join(distDocsDir, 'tutorial.html'), 'Tutorial: Getting Started', '..', 'tutorial')
-compileAdoc(path.join(docsDir, 'how-to.adoc'), path.join(distDocsDir, 'how-to.html'), 'How-To: Thread Scheduling', '..', 'how-to')
-compileAdoc(path.join(docsDir, 'explanation.adoc'), path.join(distDocsDir, 'explanation.html'), 'Explanation: Core Supervisor', '..', 'explanation')
-compileAdoc(path.join(docsDir, 'reference.adoc'), path.join(distDocsDir, 'reference.html'), 'Reference: Command & Schema Spec', '..', 'reference')
+compileAdoc(
+  path.join(docsDir, 'tutorial.adoc'),
+  path.join(distDocsDir, 'tutorial.html'),
+  'Tutorial: Getting Started',
+  '..',
+  'tutorial'
+)
+compileAdoc(
+  path.join(docsDir, 'how-to.adoc'),
+  path.join(distDocsDir, 'how-to.html'),
+  'How-To: Thread Scheduling',
+  '..',
+  'how-to'
+)
+compileAdoc(
+  path.join(docsDir, 'explanation.adoc'),
+  path.join(distDocsDir, 'explanation.html'),
+  'Explanation: Core Supervisor',
+  '..',
+  'explanation'
+)
+compileAdoc(
+  path.join(docsDir, 'reference.adoc'),
+  path.join(distDocsDir, 'reference.html'),
+  'Reference: Command & Schema Spec',
+  '..',
+  'reference'
+)
 
 // Compile root timeline articles
-compileAdoc(path.join(rootDir, 'CHANGELOG.adoc'), path.join(distDir, 'changelog.html'), 'Changelog Timeline', '.', 'changelog')
+compileAdoc(
+  path.join(rootDir, 'CHANGELOG.adoc'),
+  path.join(distDir, 'changelog.html'),
+  'Changelog Timeline',
+  '.',
+  'changelog'
+)
 
 // Compile changelog-details detailed timeline logs
 const detailsFiles = fs.readdirSync(changelogDetailsDir)

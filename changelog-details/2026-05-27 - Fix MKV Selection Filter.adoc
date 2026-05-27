@@ -1,0 +1,18 @@
+= 2026-05-27 - Fix MKV Selection Filter
+:toc:
+
+This detailed changelog details the fix for manual MKV and other supported video container file selections in multimux.
+
+== Fixes & Enhancements
+
+=== 1. Native Electron File Selection Dialog Migration
+* Replaced the HTML browser `<input type="file">` element in `src/renderer/src/App.tsx` with a direct call to Electron's native `dialog.showOpenDialog` via IPC (`select-input-file`).
+* Configured explicit and separate filter groups in the native dialog:
+  - **Supported Video Containers**: matches `*.mkv`, `*.mp4`, `*.ts`, `*.mov`.
+  - **Matroska Video**: matches `*.mkv`.
+  - **MPEG-4 Video**: matches `*.mp4`.
+  - **MPEG Transport Stream**: matches `*.ts`.
+  - **QuickTime Movie**: matches `*.mov`.
+  - **All Files**: matches `*.*`.
+* This completely resolves issues where `.mkv` and `.ts` files were hidden or filtered out on operating systems due to mismatched standard browser MIME types under `video/*`.
+* Replaced the file select `<label>` with a tactile `<button>` to trigger the dialog directly.

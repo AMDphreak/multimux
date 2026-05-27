@@ -6,6 +6,7 @@ declare global {
     electron: ElectronAPI
     api: {
       probeFile: (filePath: string) => Promise<ProbeResult>
+      selectInputFile: () => Promise<string | undefined>
       selectOutputFile: (defaultPath: string) => Promise<string | undefined>
       openExplorer: (filePath: string) => Promise<void>
       muxAudio: (options: MuxOptions) => Promise<void>

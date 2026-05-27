@@ -5,6 +5,10 @@ This document records the developmental history of multimux.
 
 == Timeline
 
+* link:changelog-details/2026-05-27%20-%20Fix%20MKV%20Selection%20Filter.adoc[2026-05-27 - Fix MKV Selection Filter]
++
+Fixed an issue in the manual file selection dialog where Matroska Video (.mkv) files were filtered out. The file input accept attribute was explicitly expanded to include `.mkv`, `.mp4`, `.ts`, and `.mov` alongside the generic `video/*` category.
+
 * link:changelog-details/2026-05-27%20-%20Initial%20v0.1.0%20Release.adoc[2026-05-27 - Initial v0.1.0 Release]
 +
 Initial release of multimux. Implements the tactile concrete-panel physical audio mixing desk console UI, IPC handlers for ffprobe/ffmpeg analysis and signal processing, allow-listed git settings, and a fully configured GitHub Actions CI/CD release workflow.

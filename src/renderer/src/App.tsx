@@ -24,25 +24,25 @@ export default function App() {
   const [fileName, setFileName] = createSignal<string>('')
   const [duration, setDuration] = createSignal<number>(0)
   const [fileSize, setFileSize] = createSignal<string>('')
-  
+
   const [audioStreams, setAudioStreams] = createSignal<AudioStreamState[]>([])
   const [videoStream, setVideoStream] = createSignal<VideoStreamState | null>(null)
-  
+
   // Drag states
   const [isDragOver, setIsDragOver] = createSignal<boolean>(false)
-  
+
   // Muxing settings
   const [audioCodec, setAudioCodec] = createSignal<string>('aac')
   const [audioBitrate, setAudioBitrate] = createSignal<string>('192k')
   const [outputPath, setOutputPath] = createSignal<string>('')
-  
+
   // Processing states
   const [isProcessing, setIsProcessing] = createSignal<boolean>(false)
   const [progress, setProgress] = createSignal<number>(0)
   const [logs, setLogs] = createSignal<string[]>([])
   const [error, setError] = createSignal<string>('')
   const [success, setSuccess] = createSignal<boolean>(false)
-  
+
   let logTerminalEndRef: HTMLDivElement | undefined
 
   // Clean filename and directory when path changes
@@ -53,9 +53,9 @@ export default function App() {
       const parts = path.split(/[/\\]/)
       const name = parts[parts.length - 1]
       setFileName(name)
-      
+
       const dir = parts.slice(0, parts.length - 1).join('\\') + '\\'
-      
+
       // Auto default output path to "mixed_[original_name].mkv" in same directory
       const extIndex = name.lastIndexOf('.')
       const baseName = extIndex !== -1 ? name.substring(0, extIndex) : name
@@ -67,9 +67,15 @@ export default function App() {
   // Format seconds to HH:MM:SS
   const formatDuration = (secs: number) => {
     if (isNaN(secs) || secs <= 0) return '00:00:00'
-    const h = Math.floor(secs / 3600).toString().padStart(2, '0')
-    const m = Math.floor((secs % 3600) / 60).toString().padStart(2, '0')
-    const s = Math.floor(secs % 60).toString().padStart(2, '0')
+    const h = Math.floor(secs / 3600)
+      .toString()
+      .padStart(2, '0')
+    const m = Math.floor((secs % 3600) / 60)
+      .toString()
+      .padStart(2, '0')
+    const s = Math.floor(secs % 60)
+      .toString()
+      .padStart(2, '0')
     return `${h}:${m}:${s}`
   }
 
@@ -77,7 +83,7 @@ export default function App() {
   const handleDrop = async (e: DragEvent) => {
     e.preventDefault()
     setIsDragOver(false)
-    
+
     if (isProcessing()) return
 
     const files = e.dataTransfer?.files
@@ -90,12 +96,15 @@ export default function App() {
   }
 
   // Manual file input selection
-  const handleManualSelect = (e: Event) => {
-    const target = e.target as HTMLInputElement
-    if (target.files && target.files.length > 0) {
-      const file = target.files[0]
-      const path = (file as any).path || file.name
-      loadFile(path)
+  const handleManualSelect = async (): Promise<void> => {
+    try {
+      const selected = await window.api.selectInputFile()
+      if (selected) {
+        loadFile(selected)
+      }
+    } catch (err: any) {
+      console.error('Open dialog error:', err)
+      setError(`Failed to select file: ${err.message || String(err)}`)
     }
   }
 
@@ -104,12 +113,12 @@ export default function App() {
     setError('')
     setSuccess(false)
     setProgress(0)
-    
+
     try {
       const result = await window.api.probeFile(path)
-      
+
       // Extract video stream
-      const video = result.streams.find(s => s.codec_type === 'video')
+      const video = result.streams.find((s) => s.codec_type === 'video')
       if (video) {
         setVideoStream({
           index: video.index,
@@ -121,11 +130,11 @@ export default function App() {
       } else {
         setVideoStream(null)
       }
-      
+
       // Extract audio streams
       let audioRelIdx = 0
       const audios: AudioStreamState[] = []
-      
+
       for (const s of result.streams) {
         if (s.codec_type === 'audio') {
           audios.push({
@@ -139,13 +148,13 @@ export default function App() {
           })
         }
       }
-      
+
       setAudioStreams(audios)
-      
+
       // File duration
       const durStr = result.format?.duration || '0'
       setDuration(parseFloat(durStr))
-      
+
       // File size formatted
       const sizeBytes = parseInt(result.format?.size || '0', 10)
       if (sizeBytes > 0) {
@@ -158,7 +167,7 @@ export default function App() {
       } else {
         setFileSize('Unknown size')
       }
-      
+
       setFilePath(path)
     } catch (err: any) {
       setError(`Failed to read media metadata: ${err.message || String(err)}`)
@@ -188,33 +197,37 @@ export default function App() {
 
   // Set stream volume
   const setStreamVolume = (relIndex: number, volume: number) => {
-    setAudioStreams(prev =>
-      prev.map(s => (s.relativeIndex === relIndex ? { ...s, volume } : s))
+    setAudioStreams((prev) =>
+      prev.map((s) => (s.relativeIndex === relIndex ? { ...s, volume } : s))
     )
   }
 
   // Toggle stream status
   const toggleStream = (relIndex: number) => {
-    setAudioStreams(prev =>
-      prev.map(s => (s.relativeIndex === relIndex ? { ...s, enabled: !s.enabled } : s))
+    setAudioStreams((prev) =>
+      prev.map((s) => (s.relativeIndex === relIndex ? { ...s, enabled: !s.enabled } : s))
     )
   }
 
   // Launch mixing process
   const triggerMux = async () => {
     if (!filePath()) return
-    
+
     // Validate output path
     if (!outputPath().trim()) {
       setError('Please specify a valid output path.')
       return
     }
 
-    const activeStreams = audioStreams().filter(s => s.enabled)
-    
+    const activeStreams = audioStreams().filter((s) => s.enabled)
+
     setError('')
     setSuccess(false)
-    setLogs(['[multimux] Initializing master mixing thread...', `[multimux] Input file: ${filePath()}`, `[multimux] Target output: ${outputPath()}`])
+    setLogs([
+      '[multimux] Initializing master mixing thread...',
+      `[multimux] Input file: ${filePath()}`,
+      `[multimux] Target output: ${outputPath()}`
+    ])
     setProgress(0)
     setIsProcessing(true)
 
@@ -224,7 +237,7 @@ export default function App() {
     })
 
     const cleanupLog = window.api.onMuxLog((line) => {
-      setLogs(prev => [...prev, line.trim()])
+      setLogs((prev) => [...prev, line.trim()])
       // Auto scroll terminal
       if (logTerminalEndRef) {
         logTerminalEndRef.scrollIntoView({ behavior: 'smooth' })
@@ -238,7 +251,7 @@ export default function App() {
         audioCodec: audioCodec(),
         audioBitrate: audioBitrate(),
         duration: duration(),
-        selectedStreams: activeStreams.map(s => ({
+        selectedStreams: activeStreams.map((s) => ({
           relativeIndex: s.relativeIndex,
           volume: s.volume
         }))
@@ -281,10 +294,15 @@ export default function App() {
           {/* Glowing Green Power Indicator */}
           <div class="flex items-center gap-2 bg-black px-3 py-1.5 rounded border border-zinc-800">
             <div class="w-2.5 h-2.5 rounded-full led-green"></div>
-            <span class="text-[10px] text-zinc-400 font-bold tracking-widest uppercase">Console Power</span>
+            <span class="text-[10px] text-zinc-400 font-bold tracking-widest uppercase">
+              Console Power
+            </span>
           </div>
           <h1 class="text-xs font-bold text-zinc-200 tracking-[0.25em] uppercase font-mono">
-            multimux <span class="text-zinc-500 font-normal tracking-normal text-[10px] ml-1">// Master Audio Mixdown Suite</span>
+            multimux{' '}
+            <span class="text-zinc-500 font-normal tracking-normal text-[10px] ml-1">
+              // Master Audio Mixdown Suite
+            </span>
           </h1>
         </div>
         <div class="text-[10px] text-zinc-500 font-mono tracking-wider">
@@ -303,90 +321,118 @@ export default function App() {
               onDragLeave={onDragLeave}
               onDrop={handleDrop}
               class={`w-full max-w-3xl aspect-[16/9] concrete-plate flex flex-col items-center justify-center p-8 transition-all duration-300 relative border-2 ${
-                isDragOver() 
-                  ? 'border-emerald-500 bg-[#eaeaea] shadow-inner scale-[1.01]' 
+                isDragOver()
+                  ? 'border-emerald-500 bg-[#eaeaea] shadow-inner scale-[1.01]'
                   : 'border-[#a8a89e] bg-[#e4e4db]'
               }`}
             >
               {/* Dropzone Inner Recessed Cavity */}
-              <div 
+              <div
                 class={`w-full h-full border border-dashed rounded-lg flex flex-col items-center justify-center p-8 transition-all duration-300 ${
-                  isDragOver() ? 'border-emerald-500 bg-[#eefaf4]' : 'border-zinc-400 bg-black/[0.02]'
+                  isDragOver()
+                    ? 'border-emerald-500 bg-[#eefaf4]'
+                    : 'border-zinc-400 bg-black/[0.02]'
                 }`}
               >
                 {/* Circular inlet plate icon representing physical port */}
-                <div 
+                <div
                   class={`w-24 h-24 rounded-full flex items-center justify-center mb-6 border transition-all duration-300 ${
                     isDragOver()
                       ? 'bg-emerald-500/10 border-emerald-500 shadow-[0_0_15px_rgba(16,185,129,0.3)]'
                       : 'bg-[#d6d6cd] border-[#b0b0a5] shadow-md'
                   }`}
                 >
-                  <svg class={`w-10 h-10 transition-colors duration-300 ${isDragOver() ? 'text-emerald-500' : 'text-zinc-600'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                  <svg
+                    class={`w-10 h-10 transition-colors duration-300 ${isDragOver() ? 'text-emerald-500' : 'text-zinc-600'}`}
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="1.5"
+                      d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"
+                    />
                   </svg>
                 </div>
-                
-                <h3 class="text-sm font-bold tracking-widest text-zinc-800 uppercase mb-2">Inlet Port: Drop File Here</h3>
+
+                <h3 class="text-sm font-bold tracking-widest text-zinc-800 uppercase mb-2">
+                  Inlet Port: Drop File Here
+                </h3>
                 <p class="text-xs text-zinc-500 tracking-wider mb-6 text-center max-w-md leading-relaxed">
-                  Drop multi-track recording (.MKV, .MP4, .TS, .MOV) into this console cavity to analyze channels
+                  Drop multi-track recording (.MKV, .MP4, .TS, .MOV) into this console cavity to
+                  analyze channels
                 </p>
-                
+
                 {/* Tactical manual select button */}
-                <label class="tactile-button text-[10px] font-bold tracking-widest uppercase px-6 py-3 cursor-pointer hover:bg-zinc-100 transition-colors active:translate-y-0.5">
+                <button
+                  onClick={handleManualSelect}
+                  class="tactile-button text-[10px] font-bold tracking-widest uppercase px-6 py-3 cursor-pointer hover:bg-zinc-100 transition-colors active:translate-y-0.5"
+                >
                   Browse Storage File
-                  <input type="file" accept="video/*" class="hidden" onChange={handleManualSelect} />
-                </label>
+                </button>
               </div>
 
               {/* Status footer inside dropzone */}
               <div class="absolute bottom-4 left-6 flex items-center gap-1.5">
                 <div class="w-1.5 h-1.5 rounded-full led-amber"></div>
-                <span class="text-[9px] font-mono tracking-wider text-zinc-500 uppercase">Console Awaiting Load</span>
+                <span class="text-[9px] font-mono tracking-wider text-zinc-500 uppercase">
+                  Console Awaiting Load
+                </span>
               </div>
             </div>
           }
         >
           {/* THE MIXING CONSOLE DESK (File Loaded) */}
           <div class="w-full max-w-6xl h-full flex gap-6 overflow-hidden items-stretch select-none">
-            
             {/* Left Column: Input Source & Serial Plate */}
             <div class="w-72 shrink-0 flex flex-col gap-6">
-              
               {/* Media Inspector Serial Plate */}
               <div class="concrete-plate p-4 flex flex-col relative flex-1 min-h-[300px]">
                 <div class="text-[10px] font-bold text-zinc-500 tracking-widest uppercase mb-4 font-mono pb-2 border-b border-[#cbcbbf]">
                   // File Inspector
                 </div>
-                
+
                 {/* Rigid Metal Serial Spec Card */}
                 <div class="bg-[#f0f0e8] border border-[#cfcfc4] rounded p-3 font-mono text-[10px] text-zinc-800 leading-relaxed shadow-sm mb-4">
-                  <div class="font-bold text-zinc-950 border-b border-[#cfcfc4] pb-1.5 mb-2 truncate" title={fileName()}>
+                  <div
+                    class="font-bold text-zinc-950 border-b border-[#cfcfc4] pb-1.5 mb-2 truncate"
+                    title={fileName()}
+                  >
                     FILE: {fileName()}
                   </div>
                   <div class="grid grid-cols-2 gap-y-1.5 gap-x-2">
                     <span class="text-zinc-500">FORMAT:</span>
                     <span class="text-right uppercase">{fileName().split('.').pop() || 'MKV'}</span>
-                    
+
                     <span class="text-zinc-500">SIZE:</span>
                     <span class="text-right font-bold">{fileSize()}</span>
-                    
+
                     <span class="text-zinc-500">DURATION:</span>
-                    <span class="text-right font-bold text-emerald-800">{formatDuration(duration())}</span>
-                    
+                    <span class="text-right font-bold text-emerald-800">
+                      {formatDuration(duration())}
+                    </span>
+
                     <Show when={videoStream()}>
                       <span class="text-zinc-500">VIDEO:</span>
                       <span class="text-right truncate uppercase">{videoStream()?.codec}</span>
-                      
+
                       <span class="text-zinc-500">RESOLUTION:</span>
-                      <span class="text-right font-bold">{videoStream()?.width}x{videoStream()?.height}</span>
+                      <span class="text-right font-bold">
+                        {videoStream()?.width}x{videoStream()?.height}
+                      </span>
                     </Show>
                   </div>
                 </div>
 
                 {/* Tactical Eject File button */}
                 <button
-                  onClick={() => { setFilePath(''); setAudioStreams([]); setVideoStream(null); }}
+                  onClick={() => {
+                    setFilePath('')
+                    setAudioStreams([])
+                    setVideoStream(null)
+                  }}
                   class="tactile-button py-2 w-full text-[9px] font-bold tracking-widest uppercase bg-red-500/10 text-red-700 border-red-300 hover:bg-red-500/15"
                 >
                   Eject File
@@ -401,18 +447,30 @@ export default function App() {
 
                 {/* Output File Recessed Slot */}
                 <div class="flex flex-col gap-1.5">
-                  <label class="text-[9px] font-bold tracking-wider text-zinc-500 uppercase">Save Target File</label>
+                  <label class="text-[9px] font-bold tracking-wider text-zinc-500 uppercase">
+                    Save Target File
+                  </label>
                   <div class="flex gap-2">
                     <div class="flex-1 recessed-well px-3 py-2 flex items-center justify-start text-[10px] font-mono text-emerald-400 select-all overflow-x-auto whitespace-nowrap scrollbar-none max-w-[180px]">
                       {outputPath()}
                     </div>
-                    <button 
+                    <button
                       onClick={browseOutputPath}
                       class="tactile-button w-9 h-8 flex items-center justify-center shrink-0"
                       title="Select Destination Location"
                     >
-                      <svg class="w-4 h-4 text-zinc-700" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
+                      <svg
+                        class="w-4 h-4 text-zinc-700"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                      >
+                        <path
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          stroke-width="2"
+                          d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"
+                        />
                       </svg>
                     </button>
                   </div>
@@ -421,12 +479,16 @@ export default function App() {
                 {/* Settings Block: Codec & Bitrate */}
                 <div class="grid grid-cols-2 gap-3">
                   <div class="flex flex-col gap-1.5">
-                    <label class="text-[9px] font-bold tracking-wider text-zinc-500 uppercase">Audio Codec</label>
+                    <label class="text-[9px] font-bold tracking-wider text-zinc-500 uppercase">
+                      Audio Codec
+                    </label>
                     <div class="grid grid-cols-2 bg-[#d7d7ce] p-0.5 rounded border border-[#b5b5ab]">
                       <button
                         onClick={() => setAudioCodec('aac')}
                         class={`py-1 text-[9px] font-mono font-bold rounded transition-colors ${
-                          audioCodec() === 'aac' ? 'bg-[#9e9e94] text-white shadow-inner' : 'text-zinc-700 hover:text-zinc-950'
+                          audioCodec() === 'aac'
+                            ? 'bg-[#9e9e94] text-white shadow-inner'
+                            : 'text-zinc-700 hover:text-zinc-950'
                         }`}
                       >
                         AAC
@@ -434,7 +496,9 @@ export default function App() {
                       <button
                         onClick={() => setAudioCodec('libopus')}
                         class={`py-1 text-[9px] font-mono font-bold rounded transition-colors ${
-                          audioCodec() === 'libopus' ? 'bg-[#9e9e94] text-white shadow-inner' : 'text-zinc-700 hover:text-zinc-950'
+                          audioCodec() === 'libopus'
+                            ? 'bg-[#9e9e94] text-white shadow-inner'
+                            : 'text-zinc-700 hover:text-zinc-950'
                         }`}
                       >
                         OPUS
@@ -443,7 +507,9 @@ export default function App() {
                   </div>
 
                   <div class="flex flex-col gap-1.5">
-                    <label class="text-[9px] font-bold tracking-wider text-zinc-500 uppercase">Bitrate</label>
+                    <label class="text-[9px] font-bold tracking-wider text-zinc-500 uppercase">
+                      Bitrate
+                    </label>
                     <select
                       value={audioBitrate()}
                       onChange={(e) => setAudioBitrate(e.currentTarget.value)}
@@ -463,12 +529,14 @@ export default function App() {
             <div class="flex-1 concrete-plate p-5 flex flex-col min-w-0">
               <div class="text-[10px] font-bold text-zinc-500 tracking-widest uppercase font-mono pb-2 border-b border-[#cbcbbf] shrink-0 mb-4 flex items-center justify-between">
                 <span>// Tactical Channel Strips</span>
-                <span class="text-[8px] text-zinc-400 normal-case">// TIP: DOUBLE-CLICK KNOB TO RESET TO 0dB (NORMAL VOLUME)</span>
+                <span class="text-[8px] text-zinc-400 normal-case">
+                  // TIP: DOUBLE-CLICK KNOB TO RESET TO 0dB (NORMAL VOLUME)
+                </span>
               </div>
 
               {/* Horizontal List of Channels */}
               <div class="flex-1 flex gap-4 items-stretch justify-start overflow-x-auto py-2 custom-scroll">
-                <For 
+                <For
                   each={audioStreams()}
                   fallback={
                     <div class="flex-1 flex flex-col items-center justify-center text-zinc-400 font-mono text-xs">
@@ -479,30 +547,30 @@ export default function App() {
                   {(stream) => {
                     // Simple drag handler calculations
                     let dragContainer: HTMLDivElement | undefined
-                    
+
                     const handlePointerDown = (e: PointerEvent) => {
                       if (!dragContainer) return
                       e.preventDefault()
                       dragContainer.setPointerCapture(e.pointerId)
-                      
+
                       const updateVolume = (event: PointerEvent) => {
                         if (!dragContainer) return
                         const rect = dragContainer.getBoundingClientRect()
-                        
+
                         // Calculate percentage from bottom of slot
                         // Recess slot height is 100%, bottom is 0% volume, top is 200% volume
                         const percentage = 1 - (event.clientY - rect.top) / rect.height
                         const clamped = Math.max(0, Math.min(2, percentage * 2))
-                        
+
                         // Snap zone: if coefficient is very close to 1.0 (between 0.96 and 1.04), snap to exactly 1.0 (0dB)
                         const snapped = clamped >= 0.94 && clamped <= 1.06 ? 1.0 : clamped
                         setStreamVolume(stream.relativeIndex, parseFloat(snapped.toFixed(2)))
                       }
-                      
+
                       const handlePointerMove = (event: PointerEvent) => {
                         updateVolume(event)
                       }
-                      
+
                       const handlePointerUp = (event: PointerEvent) => {
                         if (!dragContainer) return
                         try {
@@ -511,7 +579,7 @@ export default function App() {
                         dragContainer.removeEventListener('pointermove', handlePointerMove)
                         dragContainer.removeEventListener('pointerup', handlePointerUp)
                       }
-                      
+
                       dragContainer.addEventListener('pointermove', handlePointerMove)
                       dragContainer.addEventListener('pointerup', handlePointerUp)
                       updateVolume(e)
@@ -520,20 +588,24 @@ export default function App() {
                     return (
                       /* Channel Strip Panel */
                       <div class="w-32 bg-[#ebebe4] border border-[#c2c2b7] rounded shadow-inner p-3 flex flex-col items-center shrink-0 select-none">
-                        
                         {/* Top indicator: Glowing analog LED */}
                         <div class="flex items-center gap-1.5 mb-2.5">
-                          <div 
+                          <div
                             class={`w-2.5 h-2.5 rounded-full transition-all duration-300 ${
                               stream.enabled ? 'led-green' : 'led-green-dim'
                             }`}
                           ></div>
-                          <span class="text-[8px] font-mono text-zinc-500 font-bold uppercase">CH {stream.relativeIndex + 1}</span>
+                          <span class="text-[8px] font-mono text-zinc-500 font-bold uppercase">
+                            CH {stream.relativeIndex + 1}
+                          </span>
                         </div>
 
                         {/* Stream specifications */}
                         <div class="text-center font-mono w-full mb-3 pb-1.5 border-b border-[#d8d8ce]">
-                          <div class="text-[9px] font-bold text-zinc-800 truncate" title={stream.title}>
+                          <div
+                            class="text-[9px] font-bold text-zinc-800 truncate"
+                            title={stream.title}
+                          >
                             {stream.title}
                           </div>
                           <div class="text-[8px] text-zinc-400 font-semibold uppercase mt-0.5">
@@ -543,12 +615,14 @@ export default function App() {
 
                         {/* Tactical Toggle Flip Switch */}
                         <div class="flex flex-col items-center gap-1 mb-5">
-                          <span class="text-[7px] font-mono font-bold tracking-widest text-zinc-400 uppercase">MUTE / INCL</span>
+                          <span class="text-[7px] font-mono font-bold tracking-widest text-zinc-400 uppercase">
+                            MUTE / INCL
+                          </span>
                           <button
                             onClick={() => toggleStream(stream.relativeIndex)}
                             class="w-12 h-6 toggle-switch-track p-0.5 flex items-center relative"
                           >
-                            <div 
+                            <div
                               class="w-5 h-5 toggle-switch-handle flex items-center justify-center"
                               style={{
                                 transform: stream.enabled ? 'translateX(24px)' : 'translateX(0px)'
@@ -574,16 +648,16 @@ export default function App() {
                           </div>
 
                           {/* Recessed slot track wrapper */}
-                          <div 
+                          <div
                             ref={dragContainer}
                             onPointerDown={handlePointerDown}
                             class="w-8 relative recessed-well px-1.5 py-1.5 flex items-center justify-center cursor-ns-resize"
                           >
                             {/* Inner thin slider metal slide rod */}
                             <div class="w-1 h-full tactile-slider-track absolute left-[14px]"></div>
-                            
+
                             {/* Grabable Fader Slider metal knob cap */}
-                            <div 
+                            <div
                               onDblClick={() => setStreamVolume(stream.relativeIndex, 1.0)}
                               class="w-7 h-5 absolute left-[3.5px] tactile-slider-thumb flex items-center justify-center transition-all duration-75 select-none"
                               style={{
@@ -599,18 +673,17 @@ export default function App() {
                         </div>
 
                         {/* Digital Volumetric display tag */}
-                        <div 
+                        <div
                           class={`w-full mt-4 py-1 rounded text-center text-[9px] font-mono font-bold leading-none select-all transition-colors ${
-                            stream.enabled 
-                              ? stream.volume === 1.0 
-                                ? 'bg-zinc-800 text-zinc-300' 
-                                : 'bg-emerald-950 text-emerald-400' 
+                            stream.enabled
+                              ? stream.volume === 1.0
+                                ? 'bg-zinc-800 text-zinc-300'
+                                : 'bg-emerald-950 text-emerald-400'
                               : 'bg-zinc-300 text-zinc-500'
                           }`}
                         >
                           {stream.enabled ? getDbLabel(stream.volume) : 'MUTED'}
                         </div>
-
                       </div>
                     )
                   }}
@@ -630,7 +703,10 @@ export default function App() {
                   <Show when={!error() && audioStreams().length > 0}>
                     <div class="text-[9px] font-mono text-zinc-500 uppercase tracking-widest flex items-center gap-1.5">
                       <div class="w-1.5 h-1.5 rounded-full led-amber"></div>
-                      <span>Mixing {audioStreams().filter(s => s.enabled).length} audio tracks down to Track 1</span>
+                      <span>
+                        Mixing {audioStreams().filter((s) => s.enabled).length} audio tracks down to
+                        Track 1
+                      </span>
                     </div>
                   </Show>
                 </div>
@@ -645,45 +721,43 @@ export default function App() {
                   <span>Mix & Mux Master</span>
                 </button>
               </div>
-
             </div>
-
           </div>
         </Show>
       </main>
 
       {/* RENDER PROGRESS SCREEN (CRT MONITOR OVERLAY) */}
-      <Show when={isProcessing() || success() || error() && isProcessing()}>
+      <Show when={isProcessing() || success() || (error() && isProcessing())}>
         <div class="absolute inset-0 bg-black/85 backdrop-blur-sm z-50 flex items-center justify-center p-6">
           <div class="w-full max-w-3xl zinc-panel flex flex-col h-[520px] rounded-lg overflow-hidden border border-zinc-800 relative z-10">
             {/* CRT Screen Bezel Glow Header */}
             <div class="bg-zinc-950 px-5 py-3 border-b border-zinc-900 flex items-center justify-between">
               <div class="flex items-center gap-2">
-                <div class={`w-2 h-2 rounded-full ${success() ? 'led-green' : 'led-amber animate-pulse'}`}></div>
+                <div
+                  class={`w-2 h-2 rounded-full ${success() ? 'led-green' : 'led-amber animate-pulse'}`}
+                ></div>
                 <span class="text-[10px] font-mono font-bold tracking-widest text-zinc-400 uppercase">
                   {success() ? 'MASTER COMPILE COMPLETED' : 'COMPILING MASTER AUDIO DOWN-MIX...'}
                 </span>
               </div>
-              <div class="text-[9px] font-mono text-zinc-600">
-                THREAD_ID: FFMPEG_SPAWN
-              </div>
+              <div class="text-[9px] font-mono text-zinc-600">THREAD_ID: FFMPEG_SPAWN</div>
             </div>
 
             {/* CRT terminal screen body */}
             <div class="flex-1 p-5 flex flex-col gap-4 overflow-hidden bg-black text-[#2ed573] font-mono select-text relative">
               {/* Glass raster effect overlay */}
               <div class="absolute inset-0 bg-[radial-gradient(transparent_50%,rgba(0,0,0,0.25)_100%)] pointer-events-none z-10"></div>
-              
+
               {/* Overall Progress Metrics */}
               <div class="bg-zinc-950/80 border border-[#2ed573]/20 rounded p-4 flex flex-col gap-3 relative z-20">
                 <div class="flex justify-between text-[11px] font-bold tracking-widest uppercase">
                   <span>Mux Target Progress</span>
                   <span class="text-[14px] text-emerald-400">{progress().toFixed(1)}%</span>
                 </div>
-                
+
                 {/* Horizontal recessed fader progress track */}
                 <div class="h-6 w-full recessed-well p-0.5 flex items-center relative overflow-hidden">
-                  <div 
+                  <div
                     class="h-full bg-gradient-to-r from-[#2ec4b6]/20 to-[#2ec4b6] rounded-sm transition-all duration-300 relative"
                     style={{ width: `${progress()}%` }}
                   >
@@ -710,16 +784,35 @@ export default function App() {
               <div class="pt-2 border-t border-[#2ed573]/20 flex items-center justify-between shrink-0 z-20 select-none">
                 <div>
                   <Show when={error()}>
-                    <span class="text-xs text-red-500 font-bold uppercase tracking-widest animate-pulse">MUX FAILED</span>
+                    <span class="text-xs text-red-500 font-bold uppercase tracking-widest animate-pulse">
+                      MUX FAILED
+                    </span>
                   </Show>
                   <Show when={success()}>
-                    <span class="text-xs text-emerald-400 font-bold uppercase tracking-widest">SUCCESSFULLY COMPILED</span>
+                    <span class="text-xs text-emerald-400 font-bold uppercase tracking-widest">
+                      SUCCESSFULLY COMPILED
+                    </span>
                   </Show>
                   <Show when={isProcessing()}>
                     <span class="text-[9px] text-[#2ed573]/50 uppercase tracking-widest flex items-center gap-2">
-                      <svg class="animate-spin h-3.5 w-3.5 text-[#2ed573]" fill="none" viewBox="0 0 24 24">
-                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      <svg
+                        class="animate-spin h-3.5 w-3.5 text-[#2ed573]"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                      >
+                        <circle
+                          class="opacity-25"
+                          cx="12"
+                          cy="12"
+                          r="10"
+                          stroke="currentColor"
+                          stroke-width="4"
+                        ></circle>
+                        <path
+                          class="opacity-75"
+                          fill="currentColor"
+                          d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                        ></path>
                       </svg>
                       Mixing audio waves...
                     </span>
@@ -751,7 +844,6 @@ export default function App() {
                   </button>
                 </div>
               </div>
-
             </div>
           </div>
         </div>

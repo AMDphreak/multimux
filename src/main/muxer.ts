@@ -81,7 +81,11 @@ export function probeFile(filePath: string): Promise<ProbeResult> {
           const parsed = JSON.parse(stdout) as ProbeResult
           resolve(parsed)
         } catch (err) {
-          reject(new Error(`Failed to parse core probe output: ${err instanceof Error ? err.message : String(err)}`))
+          reject(
+            new Error(
+              `Failed to parse core probe output: ${err instanceof Error ? err.message : String(err)}`
+            )
+          )
         }
       } else {
         // Try parsing JSON error line from stdout/stderr
