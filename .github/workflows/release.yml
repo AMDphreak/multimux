@@ -48,15 +48,9 @@ jobs:
           tag_name: ${{ steps.get_tag.outputs.tag }}
           name: Release ${{ steps.get_tag.outputs.tag }}
           body: |
-            ## multimux: Master Audio Down-Mixdown Suite v0.1.0
+            ## multimux: Master Audio Down-Mixdown Suite ${{ steps.get_tag.outputs.tag }}
 
-            This is the initial release of **multimux**!
-
-            ### What's New:
-            - **Tactile Concrete Fader Console**: A beautiful physical mixing board UI to visual balance volume sliders (decibel gains from `-oo` to `+6.0 dB`).
-            - **Lossless Video Passthrough**: Kept video bitstreams bit-for-bit identical, compiling files in seconds instead of hours.
-            - **Live CRT Monitor Feedback**: Renders FFmpeg logs and progress in real-time in a vintage green terminal feed.
-            - **Save Dialog Integration & Explorer Actions**: Open files directly or open directories in Windows Explorer.
+            Please see [CHANGELOG.adoc](https://github.com/AMDphreak/multimux/blob/main/CHANGELOG.adoc) for full details on this version's features, enhancements, and bug fixes.
           files: |
             dist/multimux-*.exe
         env:

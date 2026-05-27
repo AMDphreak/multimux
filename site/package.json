@@ -1,6 +1,6 @@
 {
   "name": "multimux-website",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Static website and documentation portal for multimux",
   "scripts": {
     "build": "node build.js"

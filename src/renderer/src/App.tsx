@@ -306,7 +306,7 @@ export default function App() {
           </h1>
         </div>
         <div class="text-[10px] text-zinc-500 font-mono tracking-wider">
-          SYSTEM_OS: WINDOWS // BUILD: v0.1.0
+          SYSTEM_OS: WINDOWS // BUILD: v0.1.1
         </div>
       </header>
 

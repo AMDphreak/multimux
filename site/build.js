@@ -1,6 +1,9 @@
 const fs = require('fs')
 const path = require('path')
 const Asciidoctor = require('asciidoctor')
+const pkg = require('./package.json')
+
+const appVersion = pkg.version
 
 const asciidoctor = Asciidoctor()
 
@@ -216,7 +219,7 @@ function wrapHtml(title, content, relativePathToRoot = '.', activePage = '') {
         <div class="w-2.5 h-2.5 rounded-full bg-emerald-400 shadow-[0_0_8px_#34d399]"></div>
         <span class="font-mono text-xs font-bold tracking-[0.2em] uppercase text-zinc-100">multimux</span>
       </div>
-      <span class="text-[8px] font-mono text-zinc-500 font-bold uppercase">v0.1.0</span>
+      <span class="text-[8px] font-mono text-zinc-500 font-bold uppercase">v${appVersion}</span>
     </div>
     
     <!-- Navigation List -->
@@ -379,7 +382,7 @@ function buildCustomHomepage() {
       <div class="flex gap-4 w-full justify-center">
         <a href="https://github.com/AMDphreak/multimux/releases/latest" class="tactile-button px-8 py-3 text-xs font-mono font-bold tracking-widest uppercase text-zinc-800 flex items-center gap-2">
           <svg class="w-4 h-4 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
-          Get v0.1.0 Build
+          Get v${appVersion} Build
         </a>
         <a href="docs/tutorial.html" class="tactile-button px-8 py-3 text-xs font-mono font-bold tracking-widest uppercase text-zinc-700">
           Read the Docs
@@ -419,7 +422,7 @@ function buildCustomHomepage() {
 
   <footer class="h-16 border-t border-[#b2b2a8] bg-[#dcdcd3] flex items-center justify-between px-6 text-zinc-500 font-mono text-[10px]">
     <span>multimux // Copyright &copy; 2026 amdphreak</span>
-    <span>RELEASE: v0.1.0</span>
+    <span>RELEASE: v${appVersion}</span>
   </footer>
 
 </body>
