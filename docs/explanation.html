@@ -1,0 +1,347 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Explanation: Core Supervisor // multimux</title>
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+  
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  
+  <style>
+    :root {
+      --concrete-base: #e4e4db;
+      --concrete-shadow: #b2b2a8;
+      --concrete-highlight: #fcfcf9;
+    }
+    body {
+      background-color: var(--concrete-base);
+      background-image: 
+        radial-gradient(circle at 50% 50%, rgba(255, 255, 255, 0.15), rgba(0, 0, 0, 0.05)),
+        repeating-linear-gradient(45deg, rgba(0, 0, 0, 0.01) 0px, rgba(0, 0, 0, 0.01) 2px, transparent 2px, transparent 4px);
+      font-family: 'Inter', sans-serif;
+    }
+    .font-mono {
+      font-family: 'JetBrains Mono', monospace;
+    }
+    .concrete-plate {
+      background-color: var(--concrete-base);
+      box-shadow: 
+        1px 1px 0px var(--concrete-highlight) inset,
+        -1px -1px 0px var(--concrete-shadow) inset,
+        0 10px 25px rgba(0, 0, 0, 0.05);
+      border: 1px solid var(--concrete-shadow);
+      border-radius: 4px;
+    }
+    /* Style raw AsciiDoc content output */
+    .adoc-content h1 {
+      font-family: 'JetBrains Mono', monospace;
+      font-weight: 700;
+      font-size: 1.5rem;
+      border-bottom: 2px solid var(--concrete-shadow);
+      padding-bottom: 0.5rem;
+      margin-bottom: 1.5rem;
+      color: #1a1a1a;
+      letter-spacing: -0.025em;
+      text-transform: uppercase;
+    }
+    .adoc-content h2 {
+      font-family: 'JetBrains Mono', monospace;
+      font-weight: 700;
+      font-size: 1.1rem;
+      margin-top: 2rem;
+      margin-bottom: 1rem;
+      color: #27272a;
+      text-transform: uppercase;
+      letter-spacing: -0.01em;
+      border-bottom: 1px solid rgba(0,0,0,0.08);
+      padding-bottom: 0.25rem;
+    }
+    .adoc-content h3 {
+      font-family: 'JetBrains Mono', monospace;
+      font-weight: 700;
+      font-size: 0.95rem;
+      margin-top: 1.5rem;
+      margin-bottom: 0.75rem;
+      color: #3f3f46;
+    }
+    .adoc-content p {
+      margin-bottom: 1.25rem;
+      font-size: 0.9rem;
+      line-height: 1.6;
+      color: #27272a;
+    }
+    .adoc-content ul {
+      list-style-type: decimal;
+      padding-left: 1.25rem;
+      margin-bottom: 1.25rem;
+      font-size: 0.9rem;
+      line-height: 1.6;
+      color: #27272a;
+    }
+    .adoc-content li {
+      margin-bottom: 0.5rem;
+    }
+    .adoc-content pre {
+      background-color: #18181b;
+      color: #a7f3d0;
+      padding: 1.25rem;
+      border-radius: 4px;
+      overflow-x: auto;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.8rem;
+      line-height: 1.5;
+      margin-bottom: 1.5rem;
+      box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.3);
+      border: 1px solid #09090b;
+    }
+    .adoc-content code {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.8rem;
+      background-color: rgba(0,0,0,0.06);
+      padding: 0.2rem 0.4rem;
+      border-radius: 2px;
+      color: #1a1a1a;
+      font-weight: 600;
+    }
+    .adoc-content pre code {
+      background-color: transparent;
+      padding: 0;
+      color: inherit;
+      font-weight: inherit;
+    }
+    .adoc-content .admonitionblock {
+      background-color: #fef3c7;
+      border-left: 4px solid #f59e0b;
+      padding: 1rem;
+      margin-bottom: 1.5rem;
+      border-radius: 2px;
+    }
+    .adoc-content .admonitionblock td.icon {
+      font-family: 'JetBrains Mono', monospace;
+      font-weight: 700;
+      text-transform: uppercase;
+      font-size: 0.8rem;
+      color: #b45309;
+      padding-right: 1rem;
+      vertical-align: top;
+    }
+    .adoc-content .admonitionblock td.content {
+      font-size: 0.85rem;
+      color: #78350f;
+      line-height: 1.5;
+    }
+    .adoc-content .admonitionblock td.content p {
+      margin-bottom: 0;
+    }
+    /* Custom Scrollbar */
+    ::-webkit-scrollbar {
+      width: 8px;
+      height: 8px;
+    }
+    ::-webkit-scrollbar-track {
+      background: rgba(0,0,0,0.05);
+    }
+    ::-webkit-scrollbar-thumb {
+      background: rgba(0,0,0,0.2);
+      border-radius: 4px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: rgba(0,0,0,0.3);
+    }
+  </style>
+</head>
+<body class="flex min-h-screen">
+
+  <!-- Concrete Sidebar Console -->
+  <aside class="w-64 bg-zinc-950 text-zinc-200 border-r border-zinc-900 flex flex-col shrink-0">
+    <!-- Header Block -->
+    <div class="h-16 flex items-center justify-between px-5 bg-zinc-900 border-b border-zinc-950">
+      <div class="flex items-center gap-3">
+        <div class="w-2.5 h-2.5 rounded-full bg-emerald-400 shadow-[0_0_8px_#34d399]"></div>
+        <span class="font-mono text-xs font-bold tracking-[0.2em] uppercase text-zinc-100">multimux</span>
+      </div>
+      <span class="text-[8px] font-mono text-zinc-500 font-bold uppercase">v0.1.0</span>
+    </div>
+    
+    <!-- Navigation List -->
+    <nav class="flex-1 p-4 flex flex-col gap-1.5 overflow-y-auto">
+      <div class="text-[8px] font-mono text-zinc-600 font-bold uppercase tracking-widest px-4 mb-2">// Navigation</div>
+      
+      <a href="../index.html" class="flex items-center gap-3 px-4 py-2.5 rounded font-mono text-xs font-bold transition-all text-zinc-400 hover:bg-zinc-900/50 hover:text-zinc-200">
+        <div class="w-1.5 h-1.5 rounded-full bg-zinc-600"></div>
+        <span>Home</span>
+      </a>
+    
+      <a href="../docs/tutorial.html" class="flex items-center gap-3 px-4 py-2.5 rounded font-mono text-xs font-bold transition-all text-zinc-400 hover:bg-zinc-900/50 hover:text-zinc-200">
+        <div class="w-1.5 h-1.5 rounded-full bg-zinc-600"></div>
+        <span>Tutorial</span>
+      </a>
+    
+      <a href="../docs/how-to.html" class="flex items-center gap-3 px-4 py-2.5 rounded font-mono text-xs font-bold transition-all text-zinc-400 hover:bg-zinc-900/50 hover:text-zinc-200">
+        <div class="w-1.5 h-1.5 rounded-full bg-zinc-600"></div>
+        <span>How-To Guides</span>
+      </a>
+    
+      <a href="../docs/explanation.html" class="flex items-center gap-3 px-4 py-2.5 rounded font-mono text-xs font-bold transition-all bg-zinc-800 text-emerald-400 border border-zinc-700 shadow-inner">
+        <div class="w-1.5 h-1.5 rounded-full bg-emerald-400 shadow-[0_0_8px_#34d399]"></div>
+        <span>Explanation</span>
+      </a>
+    
+      <a href="../docs/reference.html" class="flex items-center gap-3 px-4 py-2.5 rounded font-mono text-xs font-bold transition-all text-zinc-400 hover:bg-zinc-900/50 hover:text-zinc-200">
+        <div class="w-1.5 h-1.5 rounded-full bg-zinc-600"></div>
+        <span>Reference</span>
+      </a>
+    
+      <a href="../changelog.html" class="flex items-center gap-3 px-4 py-2.5 rounded font-mono text-xs font-bold transition-all text-zinc-400 hover:bg-zinc-900/50 hover:text-zinc-200">
+        <div class="w-1.5 h-1.5 rounded-full bg-zinc-600"></div>
+        <span>Changelog</span>
+      </a>
+    
+    </nav>
+    
+    <!-- Footer credits -->
+    <div class="p-4 border-t border-zinc-900 bg-zinc-900/50 flex flex-col gap-1 font-mono text-[8px] text-zinc-500">
+      <span>DESIGN: TACTILE CONCRETE</span>
+      <span>CORE: D-LANG FFmpeg</span>
+      <a href="https://github.com/AMDphreak/multimux" class="text-zinc-400 hover:text-zinc-200 mt-2 flex items-center gap-1.5">
+        <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24"><path fill-rule="evenodd" d="M12 2C6.477 2 2 6.477 2 12c0 4.42 2.865 8.17 6.839 9.49.5.092.682-.217.682-.482 0-.237-.008-.866-.013-1.7-2.782.603-3.369-1.34-3.369-1.34-.454-1.156-1.11-1.464-1.11-1.464-.908-.62.069-.608.069-.608 1.003.07 1.531 1.03 1.531 1.03.892 1.529 2.341 1.087 2.91.831.092-.646.35-1.086.636-1.336-2.22-.253-4.555-1.11-4.555-4.943 0-1.091.39-1.984 1.029-2.683-.103-.253-.446-1.27.098-2.647 0 0 .84-.269 2.75 1.025A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.294 2.747-1.025 2.747-1.025.546 1.377.203 2.394.1 2.647.64.699 1.028 1.592 1.028 2.683 0 3.842-2.339 4.687-4.566 4.935.359.309.678.919.678 1.852 0 1.336-.012 2.415-.012 2.743 0 .267.18.579.688.481C19.137 20.167 22 16.418 22 12c0-5.523-4.477-10-10-10z" clip-rule="evenodd" /></svg>
+        GitHub Repository
+      </a>
+    </div>
+  </aside>
+
+  <!-- Document Panel Main View -->
+  <main class="flex-1 p-8 overflow-y-auto max-w-5xl">
+    <article class="concrete-plate p-8 md:p-12 adoc-content">
+      <h1>Explanation: Supervisor Architecture and Message Passing</h1>
+<div id="toc" class="toc">
+<div id="toctitle">Table of Contents</div>
+<ul class="sectlevel1">
+<li><a href="#_the_architectural_diagram">The Architectural Diagram</a></li>
+<li><a href="#_key_architectural_decisions">Key Architectural Decisions</a>
+<ul class="sectlevel2">
+<li><a href="#_1_core_process_isolation_crash_resilience">1. Core Process Isolation (Crash Resilience)</a></li>
+<li><a href="#_2_actor_based_concurrency_in_d_lang">2. Actor-Based Concurrency in D-lang</a></li>
+<li><a href="#_3_typed_json_line_protocol">3. Typed JSON-Line Protocol</a></li>
+</ul>
+</li>
+</ul>
+</div>
+<div id="preamble">
+<div class="sectionbody">
+<div class="paragraph">
+<p>This document provides a deep dive into the architectural design of <strong>multimux</strong>, detailing how the D-lang supervisor core and Electron interface collaborate via a robust, message-passing pipeline.</p>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_the_architectural_diagram">The Architectural Diagram</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>The system is split into four distinct layers, separated by process and thread boundaries:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlight"><code class="language-text" data-lang="text">+-------------------------------------------------------------+
+|                     Electron Renderer (GUI)                 |
+|  [SolidJS] - Responsive concrete dashboard UI               |
++------------------------------+------------------------------+
+                               |
+                   IPC Bridges / Context Bridge
+                               |
++------------------------------v------------------------------+
+|                     Electron Main Process                   |
+|  [Node.js] - Secure coordinator, handles native dialogs    |
++------------------------------+------------------------------+
+                               |
+                     Piped OS Subprocess (I/O)
+                               |
++------------------------------v------------------------------+
+|                     multimux-core (Supervisor)              |
+|  [D-lang] - Native coordinator, sets process priority       |
+|    |                                                        |
+|    +--- [std.concurrency] - Isolated Progress Actor Thread  |
++----+--------------------------------------------------------+
+     |
+     +--- Piped Subprocess (Win32 Handles)
+     |
++----v--------------------------------------------------------+
+|                          FFmpeg                             |
+|  [C/Assembly] - High-performance signal processing engine   |
++-------------------------------------------------------------+</code></pre>
+</div>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_key_architectural_decisions">Key Architectural Decisions</h2>
+<div class="sectionbody">
+<div class="sect2">
+<h3 id="_1_core_process_isolation_crash_resilience">1. Core Process Isolation (Crash Resilience)</h3>
+<div class="paragraph">
+<p>In many Electron media tools, developers compile native C/C++ bindings directly into the Node process. This is a severe anti-pattern:
+* If the underlying C library (<code>libavcodec</code>) encounters a corrupted frame or hardware driver error, it throws a C-level segmentation fault.
+* Because the binding runs inside Node&#8217;s address space, <strong>the entire Electron desktop app crashes immediately</strong> to the desktop with zero stack trace.</p>
+</div>
+<div class="paragraph">
+<p><strong>multimux</strong> solves this by isolating the C-execution inside a separate native subprocess boundary (<code>multimux-core.exe</code>):
+* If FFmpeg or the supervisor encounters a fatal error, it exits cleanly with a status code.
+* The Electron app captures this status code, prints a structured error banner, and lets the user adjust settings without losing their active session.</p>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_2_actor_based_concurrency_in_d_lang">2. Actor-Based Concurrency in D-lang</h3>
+<div class="paragraph">
+<p>D-lang provides native actor-based concurrency (<code>std.concurrency</code>) out-of-the-box:
+* Threads communicate purely by sending value-typed messages rather than sharing state.
+* The main D thread handles standard input/output pipes and processes standard logging.
+* The worker thread <code>trackProgressThread</code> runs isolated, receiving raw timecode strings and processing them into floating-point progress percentages.
+* This completely eliminates data-race vulnerabilities and maximizes execution speeds.</p>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_3_typed_json_line_protocol">3. Typed JSON-Line Protocol</h3>
+<div class="paragraph">
+<p>Instead of parsing verbose, human-readable FFmpeg console logs in JavaScript (which are volatile and prone to upstream changes), we use a structured, typed JSON-Line protocol over standard I/O pipes:</p>
+</div>
+<div class="olist arabic">
+<ol class="arabic">
+<li>
+<p>Electron writes a single, clean JSON options string to `multimux-core&#8217;s standard input:</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlight"><code class="language-json" data-lang="json">{"filePath":"input.mp4", "outputPath":"output.mp4", "audioCodec":"aac", ...}</code></pre>
+</div>
+</div>
+</li>
+<li>
+<p>The D-lang supervisor parses it, compiles the filter graph, spawns FFmpeg, and writes structured JSON lines to standard output:</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlight"><code class="language-json" data-lang="json">{"type": "log", "message": "Spawning FFmpeg..."}
+{"type": "progress", "percent": 14.50}
+{"type": "progress", "percent": 100.0, "message": "Success"}
+{"type": "done"}</code></pre>
+</div>
+</div>
+</li>
+<li>
+<p>Electron receives these JSON lines, instantly maps them to SolidJS reactive signals, and renders updates with sub-millisecond lag.</p>
+</li>
+</ol>
+</div>
+</div>
+</div>
+</div>
+    </article>
+  </main>
+
+</body>
+</html>
+  

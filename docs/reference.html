@@ -1,0 +1,381 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Reference: Command & Schema Spec // multimux</title>
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+  
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  
+  <style>
+    :root {
+      --concrete-base: #e4e4db;
+      --concrete-shadow: #b2b2a8;
+      --concrete-highlight: #fcfcf9;
+    }
+    body {
+      background-color: var(--concrete-base);
+      background-image: 
+        radial-gradient(circle at 50% 50%, rgba(255, 255, 255, 0.15), rgba(0, 0, 0, 0.05)),
+        repeating-linear-gradient(45deg, rgba(0, 0, 0, 0.01) 0px, rgba(0, 0, 0, 0.01) 2px, transparent 2px, transparent 4px);
+      font-family: 'Inter', sans-serif;
+    }
+    .font-mono {
+      font-family: 'JetBrains Mono', monospace;
+    }
+    .concrete-plate {
+      background-color: var(--concrete-base);
+      box-shadow: 
+        1px 1px 0px var(--concrete-highlight) inset,
+        -1px -1px 0px var(--concrete-shadow) inset,
+        0 10px 25px rgba(0, 0, 0, 0.05);
+      border: 1px solid var(--concrete-shadow);
+      border-radius: 4px;
+    }
+    /* Style raw AsciiDoc content output */
+    .adoc-content h1 {
+      font-family: 'JetBrains Mono', monospace;
+      font-weight: 700;
+      font-size: 1.5rem;
+      border-bottom: 2px solid var(--concrete-shadow);
+      padding-bottom: 0.5rem;
+      margin-bottom: 1.5rem;
+      color: #1a1a1a;
+      letter-spacing: -0.025em;
+      text-transform: uppercase;
+    }
+    .adoc-content h2 {
+      font-family: 'JetBrains Mono', monospace;
+      font-weight: 700;
+      font-size: 1.1rem;
+      margin-top: 2rem;
+      margin-bottom: 1rem;
+      color: #27272a;
+      text-transform: uppercase;
+      letter-spacing: -0.01em;
+      border-bottom: 1px solid rgba(0,0,0,0.08);
+      padding-bottom: 0.25rem;
+    }
+    .adoc-content h3 {
+      font-family: 'JetBrains Mono', monospace;
+      font-weight: 700;
+      font-size: 0.95rem;
+      margin-top: 1.5rem;
+      margin-bottom: 0.75rem;
+      color: #3f3f46;
+    }
+    .adoc-content p {
+      margin-bottom: 1.25rem;
+      font-size: 0.9rem;
+      line-height: 1.6;
+      color: #27272a;
+    }
+    .adoc-content ul {
+      list-style-type: decimal;
+      padding-left: 1.25rem;
+      margin-bottom: 1.25rem;
+      font-size: 0.9rem;
+      line-height: 1.6;
+      color: #27272a;
+    }
+    .adoc-content li {
+      margin-bottom: 0.5rem;
+    }
+    .adoc-content pre {
+      background-color: #18181b;
+      color: #a7f3d0;
+      padding: 1.25rem;
+      border-radius: 4px;
+      overflow-x: auto;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.8rem;
+      line-height: 1.5;
+      margin-bottom: 1.5rem;
+      box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.3);
+      border: 1px solid #09090b;
+    }
+    .adoc-content code {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.8rem;
+      background-color: rgba(0,0,0,0.06);
+      padding: 0.2rem 0.4rem;
+      border-radius: 2px;
+      color: #1a1a1a;
+      font-weight: 600;
+    }
+    .adoc-content pre code {
+      background-color: transparent;
+      padding: 0;
+      color: inherit;
+      font-weight: inherit;
+    }
+    .adoc-content .admonitionblock {
+      background-color: #fef3c7;
+      border-left: 4px solid #f59e0b;
+      padding: 1rem;
+      margin-bottom: 1.5rem;
+      border-radius: 2px;
+    }
+    .adoc-content .admonitionblock td.icon {
+      font-family: 'JetBrains Mono', monospace;
+      font-weight: 700;
+      text-transform: uppercase;
+      font-size: 0.8rem;
+      color: #b45309;
+      padding-right: 1rem;
+      vertical-align: top;
+    }
+    .adoc-content .admonitionblock td.content {
+      font-size: 0.85rem;
+      color: #78350f;
+      line-height: 1.5;
+    }
+    .adoc-content .admonitionblock td.content p {
+      margin-bottom: 0;
+    }
+    /* Custom Scrollbar */
+    ::-webkit-scrollbar {
+      width: 8px;
+      height: 8px;
+    }
+    ::-webkit-scrollbar-track {
+      background: rgba(0,0,0,0.05);
+    }
+    ::-webkit-scrollbar-thumb {
+      background: rgba(0,0,0,0.2);
+      border-radius: 4px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: rgba(0,0,0,0.3);
+    }
+  </style>
+</head>
+<body class="flex min-h-screen">
+
+  <!-- Concrete Sidebar Console -->
+  <aside class="w-64 bg-zinc-950 text-zinc-200 border-r border-zinc-900 flex flex-col shrink-0">
+    <!-- Header Block -->
+    <div class="h-16 flex items-center justify-between px-5 bg-zinc-900 border-b border-zinc-950">
+      <div class="flex items-center gap-3">
+        <div class="w-2.5 h-2.5 rounded-full bg-emerald-400 shadow-[0_0_8px_#34d399]"></div>
+        <span class="font-mono text-xs font-bold tracking-[0.2em] uppercase text-zinc-100">multimux</span>
+      </div>
+      <span class="text-[8px] font-mono text-zinc-500 font-bold uppercase">v0.1.0</span>
+    </div>
+    
+    <!-- Navigation List -->
+    <nav class="flex-1 p-4 flex flex-col gap-1.5 overflow-y-auto">
+      <div class="text-[8px] font-mono text-zinc-600 font-bold uppercase tracking-widest px-4 mb-2">// Navigation</div>
+      
+      <a href="../index.html" class="flex items-center gap-3 px-4 py-2.5 rounded font-mono text-xs font-bold transition-all text-zinc-400 hover:bg-zinc-900/50 hover:text-zinc-200">
+        <div class="w-1.5 h-1.5 rounded-full bg-zinc-600"></div>
+        <span>Home</span>
+      </a>
+    
+      <a href="../docs/tutorial.html" class="flex items-center gap-3 px-4 py-2.5 rounded font-mono text-xs font-bold transition-all text-zinc-400 hover:bg-zinc-900/50 hover:text-zinc-200">
+        <div class="w-1.5 h-1.5 rounded-full bg-zinc-600"></div>
+        <span>Tutorial</span>
+      </a>
+    
+      <a href="../docs/how-to.html" class="flex items-center gap-3 px-4 py-2.5 rounded font-mono text-xs font-bold transition-all text-zinc-400 hover:bg-zinc-900/50 hover:text-zinc-200">
+        <div class="w-1.5 h-1.5 rounded-full bg-zinc-600"></div>
+        <span>How-To Guides</span>
+      </a>
+    
+      <a href="../docs/explanation.html" class="flex items-center gap-3 px-4 py-2.5 rounded font-mono text-xs font-bold transition-all text-zinc-400 hover:bg-zinc-900/50 hover:text-zinc-200">
+        <div class="w-1.5 h-1.5 rounded-full bg-zinc-600"></div>
+        <span>Explanation</span>
+      </a>
+    
+      <a href="../docs/reference.html" class="flex items-center gap-3 px-4 py-2.5 rounded font-mono text-xs font-bold transition-all bg-zinc-800 text-emerald-400 border border-zinc-700 shadow-inner">
+        <div class="w-1.5 h-1.5 rounded-full bg-emerald-400 shadow-[0_0_8px_#34d399]"></div>
+        <span>Reference</span>
+      </a>
+    
+      <a href="../changelog.html" class="flex items-center gap-3 px-4 py-2.5 rounded font-mono text-xs font-bold transition-all text-zinc-400 hover:bg-zinc-900/50 hover:text-zinc-200">
+        <div class="w-1.5 h-1.5 rounded-full bg-zinc-600"></div>
+        <span>Changelog</span>
+      </a>
+    
+    </nav>
+    
+    <!-- Footer credits -->
+    <div class="p-4 border-t border-zinc-900 bg-zinc-900/50 flex flex-col gap-1 font-mono text-[8px] text-zinc-500">
+      <span>DESIGN: TACTILE CONCRETE</span>
+      <span>CORE: D-LANG FFmpeg</span>
+      <a href="https://github.com/AMDphreak/multimux" class="text-zinc-400 hover:text-zinc-200 mt-2 flex items-center gap-1.5">
+        <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24"><path fill-rule="evenodd" d="M12 2C6.477 2 2 6.477 2 12c0 4.42 2.865 8.17 6.839 9.49.5.092.682-.217.682-.482 0-.237-.008-.866-.013-1.7-2.782.603-3.369-1.34-3.369-1.34-.454-1.156-1.11-1.464-1.11-1.464-.908-.62.069-.608.069-.608 1.003.07 1.531 1.03 1.531 1.03.892 1.529 2.341 1.087 2.91.831.092-.646.35-1.086.636-1.336-2.22-.253-4.555-1.11-4.555-4.943 0-1.091.39-1.984 1.029-2.683-.103-.253-.446-1.27.098-2.647 0 0 .84-.269 2.75 1.025A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.294 2.747-1.025 2.747-1.025.546 1.377.203 2.394.1 2.647.64.699 1.028 1.592 1.028 2.683 0 3.842-2.339 4.687-4.566 4.935.359.309.678.919.678 1.852 0 1.336-.012 2.415-.012 2.743 0 .267.18.579.688.481C19.137 20.167 22 16.418 22 12c0-5.523-4.477-10-10-10z" clip-rule="evenodd" /></svg>
+        GitHub Repository
+      </a>
+    </div>
+  </aside>
+
+  <!-- Document Panel Main View -->
+  <main class="flex-1 p-8 overflow-y-auto max-w-5xl">
+    <article class="concrete-plate p-8 md:p-12 adoc-content">
+      <h1>Reference: Core CLI Command and Schema Specification</h1>
+<div id="toc" class="toc">
+<div id="toctitle">Table of Contents</div>
+<ul class="sectlevel1">
+<li><a href="#_cli_syntax">CLI Syntax</a>
+<ul class="sectlevel2">
+<li><a href="#_1_probe_command">1. Probe Command</a></li>
+<li><a href="#_2_mux_command">2. Mux Command</a></li>
+</ul>
+</li>
+<li><a href="#_json_schemas">JSON Schemas</a>
+<ul class="sectlevel2">
+<li><a href="#_stdin_mux_configuration_schema">Stdin: Mux Configuration Schema</a></li>
+<li><a href="#_stdout_ipc_event_streams">Stdout: IPC Event Streams</a></li>
+</ul>
+</li>
+</ul>
+</div>
+<div id="preamble">
+<div class="sectionbody">
+<div class="paragraph">
+<p>This document provides a technical reference for the <code>multimux-core</code> CLI commands, JSON option schemas, and piped IPC communication events.</p>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_cli_syntax">CLI Syntax</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>The compiled native core binary supports two commands:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlight"><code class="language-bash" data-lang="bash">multimux-core probe &lt;file_path&gt;
+multimux-core mux [&lt;options_json_string&gt;]</code></pre>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_1_probe_command">1. Probe Command</h3>
+<div class="ulist">
+<ul>
+<li>
+<p><strong>Arguments</strong>: <code>&lt;file_path&gt;</code> (Absolute path to the media file).</p>
+</li>
+<li>
+<p><strong>Behavior</strong>: Runs <code>ffprobe</code> as a piped process, filters metadata, and returns a JSON payload detailing the container format and available streams.</p>
+</li>
+</ul>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_2_mux_command">2. Mux Command</h3>
+<div class="ulist">
+<ul>
+<li>
+<p><strong>Arguments</strong>: <code>[&lt;options_json_string&gt;]</code> (Optional JSON string. If omitted, the binary reads from the standard input stream).</p>
+</li>
+<li>
+<p><strong>Behavior</strong>: Orchestrates the multi-track audio mixdown using <code>ffmpeg</code>, adjusts process priorities, and writes progress lines to stdout.</p>
+</li>
+</ul>
+</div>
+<hr>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_json_schemas">JSON Schemas</h2>
+<div class="sectionbody">
+<div class="sect2">
+<h3 id="_stdin_mux_configuration_schema">Stdin: Mux Configuration Schema</h3>
+<div class="paragraph">
+<p>When invoking the <code>mux</code> command, Electron passes this options payload to the standard input of the D-lang supervisor:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlight"><code class="language-json" data-lang="json">{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "properties": {
+    "filePath": { "type": "string" },
+    "outputPath": { "type": "string" },
+    "audioCodec": { "type": "string", "enum": ["aac", "libopus", "copy"] },
+    "audioBitrate": { "type": "string", "pattern": "^[0-9]+k$" },
+    "duration": { "type": "number", "minimum": 0.0 },
+    "selectedStreams": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "relativeIndex": { "type": "integer", "minimum": 0 },
+          "volume": { "type": "number", "minimum": 0.0, "maximum": 2.0 }
+        },
+        "required": ["relativeIndex", "volume"]
+      }
+    }
+  },
+  "required": ["filePath", "outputPath", "audioCodec", "audioBitrate", "duration", "selectedStreams"]
+}</code></pre>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_stdout_ipc_event_streams">Stdout: IPC Event Streams</h3>
+<div class="paragraph">
+<p>During execution, <code>multimux-core</code> emits single-line JSON structures to <code>stdout</code> separated by standard newlines (<code>\n</code> or <code>\r\n</code>).</p>
+</div>
+<div class="sect3">
+<h4 id="_1_log_event">1. Log Event</h4>
+<div class="paragraph">
+<p>Sent whenever FFmpeg outputs debugging logs or progress metrics to stderr:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlight"><code class="language-json" data-lang="json">{ "type": "log", "message": "Spawning FFmpeg supervisor..." }</code></pre>
+</div>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_2_progress_event">2. Progress Event</h4>
+<div class="paragraph">
+<p>Sent dynamically as timestamps are extracted from standard error:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlight"><code class="language-json" data-lang="json">{ "type": "progress", "percent": 45.20 }</code></pre>
+</div>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_3_error_event">3. Error Event</h4>
+<div class="paragraph">
+<p>Sent if the command fails or parses invalid option schemas:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlight"><code class="language-json" data-lang="json">{ "type": "error", "message": "ffmpeg failed with exit code 1." }</code></pre>
+</div>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_4_completion_event">4. Completion Event</h4>
+<div class="paragraph">
+<p>Sent when the subprocess completes with exit code 0:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlight"><code class="language-json" data-lang="json">{ "type": "done" }</code></pre>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+    </article>
+  </main>
+
+</body>
+</html>
+  

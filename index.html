@@ -1,0 +1,161 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>multimux - Master Audio Down-Mixdown Suite</title>
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+  
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  
+  <style>
+    :root {
+      --concrete-base: #e4e4db;
+      --concrete-shadow: #b2b2a8;
+      --concrete-highlight: #fcfcf9;
+      --led-green: #2ed573;
+    }
+    body {
+      background-color: var(--concrete-base);
+      background-image: 
+        radial-gradient(circle at 50% 50%, rgba(255, 255, 255, 0.15), rgba(0, 0, 0, 0.05)),
+        repeating-linear-gradient(45deg, rgba(0, 0, 0, 0.01) 0px, rgba(0, 0, 0, 0.01) 2px, transparent 2px, transparent 4px);
+      font-family: 'Inter', sans-serif;
+    }
+    .font-mono {
+      font-family: 'JetBrains Mono', monospace;
+    }
+    .concrete-plate {
+      background-color: var(--concrete-base);
+      box-shadow: 
+        1px 1px 0px var(--concrete-highlight) inset,
+        -1px -1px 0px var(--concrete-shadow) inset,
+        0 15px 35px rgba(0, 0, 0, 0.08);
+      border: 1px solid var(--concrete-shadow);
+      border-radius: 6px;
+    }
+    .recessed-well {
+      background: #111215;
+      box-shadow: 
+        inset 0 4px 8px rgba(0, 0, 0, 0.5),
+        inset 0 1px 3px rgba(0, 0, 0, 0.7),
+        0 1px 0px rgba(255, 255, 255, 0.12);
+      border-radius: 4px;
+    }
+    .tactile-button {
+      background: linear-gradient(to bottom, #f5f5ee, #dcdcd3);
+      border: 1px solid #a3a398;
+      border-radius: 4px;
+      box-shadow: 
+        0 4px 0px #a3a398,
+        0 6px 15px rgba(0, 0, 0, 0.1),
+        inset 0 1px 0px var(--concrete-highlight);
+      transition: all 0.08s ease;
+    }
+    .tactile-button:active {
+      transform: translateY(3px);
+      box-shadow: 
+        0 1px 0px #a3a398,
+        0 2px 4px rgba(0, 0, 0, 0.1),
+        inset 0 1px 0px var(--concrete-highlight);
+    }
+    .led-green {
+      background-color: var(--led-green);
+      box-shadow: 
+        0 0 12px var(--led-green),
+        0 0 4px var(--led-green),
+        inset 0 1px 1px rgba(255, 255, 255, 0.7);
+    }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col">
+
+  <!-- Top bar console -->
+  <header class="h-16 flex items-center justify-between px-6 bg-zinc-950 border-b border-zinc-900 text-zinc-300">
+    <div class="flex items-center gap-4">
+      <div class="flex items-center gap-2 bg-zinc-900 px-3 py-1.5 rounded border border-zinc-800">
+        <div class="w-2.5 h-2.5 rounded-full led-green"></div>
+        <span class="text-[9px] text-zinc-400 font-mono font-bold tracking-widest uppercase">CORE ONLINE</span>
+      </div>
+      <h1 class="text-xs font-bold font-mono tracking-[0.25em] uppercase">multimux</h1>
+    </div>
+    <div class="flex items-center gap-6">
+      <a href="docs/tutorial.html" class="text-xs font-mono text-zinc-400 hover:text-zinc-200">DOCUMENTATION</a>
+      <a href="https://github.com/AMDphreak/multimux" class="text-xs font-mono text-zinc-400 hover:text-zinc-200">GITHUB</a>
+    </div>
+  </header>
+
+  <!-- Hero Content -->
+  <main class="flex-1 flex flex-col items-center justify-center p-6 max-w-4xl mx-auto w-full text-center">
+    
+    <div class="concrete-plate p-10 max-w-2xl w-full mb-12 flex flex-col items-center">
+      
+      <!-- Circular native inlet socket -->
+      <div class="w-20 h-20 rounded-full bg-[#d6d6cd] border border-[#b0b0a5] shadow-md flex items-center justify-center mb-6">
+        <svg class="w-8 h-8 text-zinc-700" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3" />
+        </svg>
+      </div>
+
+      <h2 class="text-xl font-bold font-mono text-zinc-800 tracking-wider uppercase mb-3">multimux</h2>
+      <p class="text-sm font-mono text-zinc-500 uppercase tracking-widest mb-6">Master Audio Down-Mixdown Suite</p>
+      
+      <p class="text-sm text-zinc-600 leading-relaxed max-w-lg mb-8">
+        Visually mix down multiple discrete audio container tracks into a single master track, while preserving the video stream bit-for-bit with instant, lossless, container-level passthrough. Built natively in Electron + SolidJS, powered by a high-performance concurrent D-lang core.
+      </p>
+
+      <!-- Tactical button cluster -->
+      <div class="flex gap-4 w-full justify-center">
+        <a href="https://github.com/AMDphreak/multimux/releases/latest" class="tactile-button px-8 py-3 text-xs font-mono font-bold tracking-widest uppercase text-zinc-800 flex items-center gap-2">
+          <svg class="w-4 h-4 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
+          Get v0.1.0 Build
+        </a>
+        <a href="docs/tutorial.html" class="tactile-button px-8 py-3 text-xs font-mono font-bold tracking-widest uppercase text-zinc-700">
+          Read the Docs
+        </a>
+      </div>
+
+    </div>
+
+    <!-- Features Serial Grid -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 w-full text-left mb-12">
+      <div class="concrete-plate p-6">
+        <div class="font-mono text-[10px] text-zinc-400 font-bold uppercase mb-2">// 01 / HIGH PERFORMANCE</div>
+        <h4 class="text-sm font-bold font-mono text-zinc-800 uppercase mb-2">D-Lang Concurrency</h4>
+        <p class="text-xs text-zinc-600 leading-relaxed">
+          Pipes process threads using D's native actor-model message passing, isolating FFmpeg completely to protect Electron from C-level segfaults.
+        </p>
+      </div>
+
+      <div class="concrete-plate p-6">
+        <div class="font-mono text-[10px] text-zinc-400 font-bold uppercase mb-2">// 02 / SCHEDULING</div>
+        <h4 class="text-sm font-bold font-mono text-zinc-800 uppercase mb-2">Process Affinity</h4>
+        <p class="text-xs text-zinc-600 leading-relaxed">
+          Updates background FFmpeg subprocess scheduling to Below Normal, keeping your operating system 100% responsive even under maximum conversion load.
+        </p>
+      </div>
+
+      <div class="concrete-plate p-6">
+        <div class="font-mono text-[10px] text-zinc-400 font-bold uppercase mb-2">// 03 / lossy-free</div>
+        <h4 class="text-sm font-bold font-mono text-zinc-800 uppercase mb-2">Lossless Passthrough</h4>
+        <p class="text-xs text-zinc-600 leading-relaxed">
+          Moves video packets bit-for-bit directly from the input container without transcoding, generating files instantly and preserving 100% original quality.
+        </p>
+      </div>
+    </div>
+
+  </main>
+
+  <footer class="h-16 border-t border-[#b2b2a8] bg-[#dcdcd3] flex items-center justify-between px-6 text-zinc-500 font-mono text-[10px]">
+    <span>multimux // Copyright &copy; 2026 amdphreak</span>
+    <span>RELEASE: v0.1.0</span>
+  </footer>
+
+</body>
+</html>
+  
