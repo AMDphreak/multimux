@@ -42,7 +42,7 @@ core/multimux-core.pdb
 !.github/**
 
 # Allow documentation & website
-!README.adoc
+!README.md
 !CHANGELOG.adoc
 !changelog-details/**
 !docs/**
